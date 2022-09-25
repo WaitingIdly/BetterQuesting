@@ -20,8 +20,11 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Tuple;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.Level;
@@ -80,12 +83,76 @@ public class NetPartyAction {
                 kickUser(partyID, sender, party, message.getFirst().getString("username"), permission);
                 break;
             }
+            case 6: {
+                promotePlayer(partyID, party, message.getFirst().getString("username"), permission);
+                break;
+            }
+            case 7: {
+                if (permission < EnumPartyStatus.OWNER.ordinal()) break;
+                demotePlayer(partyID, party, message.getFirst().getString("username"), permission);
+                break;
+            }
             default: {
                 BetterQuesting.logger.log(Level.ERROR, "Invalid party action '" + action + "'. Full payload:\n" + message.getFirst().toString());
             }
         }
     }
 
+    private static void promotePlayer(int partyID, IParty party, String username, int senderPermLevel) {
+        if (party == null) {
+            BetterQuesting.logger.error("Tried to increase a player's permission level of a non-existant party (" + partyID + ")");
+            return;
+        }
+
+        UUID uuid = null;
+        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+        EntityPlayerMP player = server.getPlayerList().getPlayerByUsername(username);
+        if (player != null) uuid = QuestingAPI.getQuestingUUID(player);
+        if (uuid == null) uuid = NameCache.INSTANCE.getUUID(username);
+        if (uuid == null) {
+            BetterQuesting.logger.error("Unable to identify " + username + " to promote them in " + partyID);
+            return; // No idea who this is
+        }
+
+        int targetPermLevel = checkPermission(uuid, party);
+
+        BetterQuesting.logger.warn(targetPermLevel);
+
+
+        if (targetPermLevel == EnumPartyStatus.MEMBER.ordinal() + 1) {
+            party.setStatus(uuid, EnumPartyStatus.ADMIN);
+            player.sendMessage(new TextComponentString("Promoted"));
+
+        } else {
+            BetterQuesting.logger.error("Insufficient permissions to increase the permission level of " + username + " from party " + partyID);
+        }
+    }
+
+    private static void demotePlayer(int partyID, IParty party, String username, int senderPermLevel) {
+        if (party == null) {
+            BetterQuesting.logger.error("Tried to decrease a player's permission level of a non-existant party (" + partyID + ")");
+            return;
+        }
+
+        UUID uuid = null;
+        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+        EntityPlayerMP player = server.getPlayerList().getPlayerByUsername(username);
+        if (player != null) uuid = QuestingAPI.getQuestingUUID(player);
+        if (uuid == null) uuid = NameCache.INSTANCE.getUUID(username);
+        if (uuid == null) {
+            BetterQuesting.logger.error("Unable to identify " + username + " to demote them in " + partyID);
+            return; // No idea who this is
+        }
+
+        int targetPermLevel = checkPermission(uuid, party);
+
+        if (targetPermLevel == EnumPartyStatus.ADMIN.ordinal() + 1) {
+            player.sendMessage(new TextComponentString("Demoted"));
+            party.setStatus(uuid, EnumPartyStatus.MEMBER);
+        } else {
+            BetterQuesting.logger.error("Insufficient permissions to increase the permission level of " + username + " from party " + partyID);
+        }
+    }
     private static void createParty(EntityPlayerMP sender, String name) {
         UUID playerID = QuestingAPI.getQuestingUUID(sender);
         if (PartyManager.INSTANCE.getParty(playerID) != null) return;
