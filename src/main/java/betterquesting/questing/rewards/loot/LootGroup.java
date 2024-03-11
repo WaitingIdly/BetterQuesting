@@ -72,22 +72,28 @@ public class LootGroup extends SimpleDatabase<LootGroup.LootEntry> implements IN
         }
     }
 
+    @Deprecated
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound tag) {
-        tag.setString("name", name);
-        tag.setInteger("weight", weight);
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
+        nbt.setString("name", name);
+        nbt.setInteger("weight", weight);
 
         NBTTagList jRew = new NBTTagList();
         for (DBEntry<LootEntry> entry : getEntries()) {
             if (entry == null) continue;
 
-            NBTTagCompound jLoot = entry.getValue().writeToNBT(new NBTTagCompound());
+            NBTTagCompound jLoot = entry.getValue().writeToNBT(new NBTTagCompound(), reduce);
             jLoot.setInteger("ID", entry.getID());
             jRew.appendTag(jLoot);
         }
-        tag.setTag("rewards", jRew);
+        nbt.setTag("rewards", jRew);
 
-        return tag;
+        return nbt;
     }
 
     public static class LootEntry implements INBTSaveLoad<NBTTagCompound> {
@@ -106,13 +112,19 @@ public class LootGroup extends SimpleDatabase<LootGroup.LootEntry> implements IN
             }
         }
 
+        @Deprecated
         @Override
-        public NBTTagCompound writeToNBT(NBTTagCompound tag) {
+        public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+            return writeToNBT(nbt, false);
+        }
+
+        @Override
+        public NBTTagCompound writeToNBT(NBTTagCompound tag, boolean reduce) {
             tag.setInteger("weight", weight);
 
             NBTTagList jItm = new NBTTagList();
             for (BigItemStack stack : items) {
-                jItm.appendTag(JsonHelper.ItemStackToJson(stack, new NBTTagCompound()));
+                jItm.appendTag(JsonHelper.ItemStackToJson(stack, new NBTTagCompound(), reduce));
             }
             tag.setTag("items", jItm);
 

@@ -116,8 +116,14 @@ public class TaskAdvancement implements ITask {
         }
     }
 
+    @Deprecated
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
         nbt.setString("advancement_id", advID == null ? "" : advID.toString());
         return nbt;
     }

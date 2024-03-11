@@ -73,11 +73,17 @@ public class RewardItem implements IReward {
         }
     }
 
+    @Deprecated
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
         NBTTagList rJson = new NBTTagList();
         for (BigItemStack stack : items) {
-            rJson.appendTag(JsonHelper.ItemStackToJson(stack, new NBTTagCompound()));
+            rJson.appendTag(JsonHelper.ItemStackToJson(stack, new NBTTagCompound(), reduce));
         }
         nbt.setTag("rewards", rJson);
         return nbt;

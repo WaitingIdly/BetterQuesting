@@ -1,5 +1,6 @@
 package betterquesting.questing.tasks;
 
+import betterquesting.NBTUtil;
 import betterquesting.api.questing.IQuest;
 import betterquesting.api.questing.tasks.ITask;
 import betterquesting.api.utils.BigItemStack;
@@ -31,23 +32,33 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class TaskInteractEntity implements ITask {
+
+    private static final boolean DEFAULT_IGNORE_ITEM_NBT = false;
+    private static final boolean DEFAULT_PARTIAL_ITEM_MATCH = true;
+    private static final boolean DEFAULT_USE_MAIN_HAND = true;
+    private static final boolean DEFAULT_USE_OFFHAND = true;
+    private static final boolean DEFAULT_ENTITY_SUBTYPES = true;
+    private static final boolean DEFAULT_IGNORE_ENTITY_NBT = true;
+    private static final boolean DEFAULT_ON_INTERACT = true;
+    private static final boolean DEFAULT_ON_HIT = false;
+    private static final int DEFAULT_REQUIRED = 1;
     private final Set<UUID> completeUsers = new TreeSet<>();
     private final TreeMap<UUID, Integer> userProgress = new TreeMap<>();
 
     public BigItemStack targetItem = new BigItemStack(Items.AIR);
-    public boolean ignoreItemNBT = false;
-    public boolean partialItemMatch = true;
-    public boolean useMainHand = true;
-    public boolean useOffHand = true;
+    public boolean ignoreItemNBT = DEFAULT_IGNORE_ITEM_NBT;
+    public boolean partialItemMatch = DEFAULT_PARTIAL_ITEM_MATCH;
+    public boolean useMainHand = DEFAULT_USE_MAIN_HAND;
+    public boolean useOffHand = DEFAULT_USE_OFFHAND;
 
     public String entityID = "minecraft:villager";
     public NBTTagCompound entityTags = new NBTTagCompound();
-    public boolean entitySubtypes = true;
-    public boolean ignoreEntityNBT = true;
+    public boolean entitySubtypes = DEFAULT_ENTITY_SUBTYPES;
+    public boolean ignoreEntityNBT = DEFAULT_IGNORE_ENTITY_NBT;
 
-    public boolean onInteract = true;
-    public boolean onHit = false;
-    public int required = 1;
+    public boolean onInteract = DEFAULT_ON_INTERACT;
+    public boolean onHit = DEFAULT_ON_HIT;
+    public int required = DEFAULT_REQUIRED;
 
     @Override
     public String getUnlocalisedName() {
@@ -206,41 +217,47 @@ public class TaskInteractEntity implements ITask {
         return nbt;
     }
 
+    @Deprecated
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
-        nbt.setTag("item", targetItem.writeToNBT(new NBTTagCompound()));
-        nbt.setBoolean("ignoreItemNBT", ignoreItemNBT);
-        nbt.setBoolean("partialItemMatch", partialItemMatch);
+        return writeToNBT(nbt, false);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
+        nbt.setTag("item", targetItem.writeToNBT(new NBTTagCompound(), reduce));
+        NBTUtil.setBoolean(nbt, "ignoreItemNBT", ignoreItemNBT, DEFAULT_IGNORE_ITEM_NBT, reduce);
+        NBTUtil.setBoolean(nbt, "partialItemMatch", partialItemMatch, DEFAULT_PARTIAL_ITEM_MATCH, reduce);
 
         nbt.setString("targetID", entityID);
-        nbt.setTag("targetNBT", entityTags);
-        nbt.setBoolean("ignoreTargetNBT", ignoreEntityNBT);
-        nbt.setBoolean("targetSubtypes", entitySubtypes);
+        NBTUtil.setTag(nbt, "targetNBT", entityTags, reduce);
+        NBTUtil.setBoolean(nbt, "ignoreTargetNBT", ignoreEntityNBT, DEFAULT_IGNORE_ENTITY_NBT, reduce);
+        NBTUtil.setBoolean(nbt, "targetSubtypes", entitySubtypes, DEFAULT_ENTITY_SUBTYPES, reduce);
 
-        nbt.setBoolean("allowMainHand", useMainHand);
-        nbt.setBoolean("allowOffHand", useOffHand);
-        nbt.setInteger("requiredUses", required);
-        nbt.setBoolean("onInteract", onInteract);
-        nbt.setBoolean("onHit", onHit);
+        NBTUtil.setBoolean(nbt, "allowMainHand", useMainHand, DEFAULT_USE_MAIN_HAND, reduce);
+        NBTUtil.setBoolean(nbt, "allowOffHand", useOffHand, DEFAULT_USE_OFFHAND, reduce);
+        NBTUtil.setInteger(nbt, "requiredUses", required, DEFAULT_REQUIRED, reduce);
+        NBTUtil.setBoolean(nbt, "onInteract", onInteract, DEFAULT_ON_INTERACT, reduce);
+        NBTUtil.setBoolean(nbt, "onHit", onHit, DEFAULT_ON_HIT, reduce);
         return nbt;
     }
 
     @Override
     public void readFromNBT(NBTTagCompound nbt) {
         targetItem = new BigItemStack(nbt.getCompoundTag("item"));
-        ignoreItemNBT = nbt.getBoolean("ignoreItemNBT");
-        partialItemMatch = nbt.getBoolean("partialItemMatch");
+        ignoreItemNBT = NBTUtil.getBoolean(nbt, "ignoreItemNBT", DEFAULT_IGNORE_ITEM_NBT);
+        partialItemMatch = NBTUtil.getBoolean(nbt, "partialItemMatch", DEFAULT_PARTIAL_ITEM_MATCH);
 
         entityID = nbt.getString("targetID");
         entityTags = nbt.getCompoundTag("targetNBT");
-        ignoreEntityNBT = nbt.getBoolean("ignoreTargetNBT");
-        entitySubtypes = nbt.getBoolean("targetSubtypes");
+        ignoreEntityNBT = NBTUtil.getBoolean(nbt, "ignoreTargetNBT", DEFAULT_IGNORE_ENTITY_NBT);
+        entitySubtypes = NBTUtil.getBoolean(nbt, "targetSubtypes", DEFAULT_ENTITY_SUBTYPES);
 
-        useMainHand = nbt.getBoolean("allowMainHand");
-        useOffHand = nbt.getBoolean("allowOffHand");
-        required = nbt.getInteger("requiredUses");
-        onInteract = nbt.getBoolean("onInteract");
-        onHit = nbt.getBoolean("onHit");
+        useMainHand = NBTUtil.getBoolean(nbt, "allowMainHand", DEFAULT_USE_MAIN_HAND);
+        useOffHand = NBTUtil.getBoolean(nbt, "allowOffHand", DEFAULT_USE_OFFHAND);
+        required = NBTUtil.getInteger(nbt, "requiredUses", DEFAULT_REQUIRED);
+        onInteract = NBTUtil.getBoolean(nbt, "onInteract", DEFAULT_ON_INTERACT);
+        onHit = NBTUtil.getBoolean(nbt, "onHit", DEFAULT_ON_HIT);
     }
 
     private void setUserProgress(UUID uuid, int progress) {

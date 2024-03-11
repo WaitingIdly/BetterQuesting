@@ -1,5 +1,6 @@
 package betterquesting.questing.tasks;
 
+import betterquesting.NBTUtil;
 import betterquesting.ScoreboardBQ;
 import betterquesting.api.questing.IQuest;
 import betterquesting.api2.client.gui.misc.IGuiRect;
@@ -30,14 +31,19 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class TaskScoreboard implements ITaskTickable {
+
+    private static final String DEFAULT_TYPE = "dummy";
+    private static final float DEFAULT_CONVERSION = 1F;
+    private static final String DEFAULT_SUFFIX = "";
+    private static final ScoreOperation DEFAULT_OPERATION = ScoreOperation.MORE_OR_EQUAL;
     private final Set<UUID> completeUsers = new TreeSet<>();
     public String scoreName = "Score";
     public String scoreDisp = "Score";
-    public String type = "dummy";
+    public String type = DEFAULT_TYPE;
     public int target = 1;
-    public float conversion = 1F;
-    public String suffix = "";
-    public ScoreOperation operation = ScoreOperation.MORE_OR_EQUAL;
+    public float conversion = DEFAULT_CONVERSION;
+    public String suffix = DEFAULT_SUFFIX;
+    public ScoreOperation operation = DEFAULT_OPERATION;
 
     @Override
     public ResourceLocation getFactoryID() {
@@ -103,33 +109,33 @@ public class TaskScoreboard implements ITaskTickable {
         }
     }
 
+    @Deprecated
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
         nbt.setString("scoreName", scoreName);
         nbt.setString("scoreDisp", scoreDisp);
-        nbt.setString("type", type);
+        NBTUtil.setString(nbt, "type", type, DEFAULT_TYPE, reduce);
         nbt.setInteger("target", target);
-        nbt.setFloat("unitConversion", conversion);
-        nbt.setString("unitSuffix", suffix);
-        nbt.setString("operation", operation.name());
-
+        NBTUtil.setFloat(nbt, "unitConversion", conversion, DEFAULT_CONVERSION, reduce);
+        NBTUtil.setString(nbt, "unitSuffix", suffix, DEFAULT_SUFFIX, reduce);
+        NBTUtil.setString(nbt, "operation", operation.name(), DEFAULT_OPERATION.name(), reduce);
         return nbt;
     }
 
     @Override
     public void readFromNBT(NBTTagCompound nbt) {
-        scoreName = nbt.getString("scoreName");
-        scoreName = scoreName.replaceAll(" ", "_");
+        scoreName = nbt.getString("scoreName").replaceAll(" ", "_");
         scoreDisp = nbt.getString("scoreDisp");
-        type = nbt.hasKey("type", 8) ? nbt.getString("type") : "dummy";
+        type = NBTUtil.getString(nbt, "type", DEFAULT_TYPE);
         target = nbt.getInteger("target");
-        conversion = nbt.getFloat("unitConversion");
-        suffix = nbt.getString("unitSuffix");
-        try {
-            operation = ScoreOperation.valueOf(nbt.hasKey("operation", 8) ? nbt.getString("operation") : "MORE_OR_EQUAL");
-        } catch (Exception e) {
-            operation = ScoreOperation.MORE_OR_EQUAL;
-        }
+        conversion = NBTUtil.getFloat(nbt, "unitConversion", DEFAULT_CONVERSION);
+        suffix = NBTUtil.getString(nbt, "unitSuffix", DEFAULT_SUFFIX);
+        operation = NBTUtil.getEnum(nbt, "operation", ScoreOperation.class, true, DEFAULT_OPERATION);
     }
 
     @Override

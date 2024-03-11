@@ -1,5 +1,6 @@
 package betterquesting.questing.tasks;
 
+import betterquesting.NBTUtil;
 import betterquesting.XPHelper;
 import betterquesting.api.questing.IQuest;
 import betterquesting.api2.client.gui.misc.IGuiRect;
@@ -21,11 +22,15 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class TaskXP implements ITaskTickable {
+
+    private static final boolean DEFAULT_LEVELS = true;
+    private static final int DEFAULT_AMOUNT = 30;
+    private static final boolean DEFAULT_CONSUME = true;
     private final Set<UUID> completeUsers = new TreeSet<>();
     private final HashMap<UUID, Long> userProgress = new HashMap<>();
-    public boolean levels = true;
-    public int amount = 30;
-    public boolean consume = true;
+    public boolean levels = DEFAULT_LEVELS;
+    public int amount = DEFAULT_AMOUNT;
+    public boolean consume = DEFAULT_CONSUME;
 
     @Override
     public ResourceLocation getFactoryID() {
@@ -100,19 +105,25 @@ public class TaskXP implements ITaskTickable {
         return "bq_standard.task.xp";
     }
 
+    @Deprecated
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound json) {
-        json.setInteger("amount", amount);
-        json.setBoolean("isLevels", levels);
-        json.setBoolean("consume", consume);
-        return json;
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound json) {
-        amount = json.hasKey("amount", 99) ? json.getInteger("amount") : 30;
-        levels = json.getBoolean("isLevels");
-        consume = json.getBoolean("consume");
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
+        NBTUtil.setInteger(nbt, "amount", amount, DEFAULT_AMOUNT, reduce);
+        NBTUtil.setBoolean(nbt, "isLevels", levels, DEFAULT_LEVELS, reduce);
+        NBTUtil.setBoolean(nbt, "consume", consume, DEFAULT_CONSUME, reduce);
+        return nbt;
+    }
+
+    @Override
+    public void readFromNBT(NBTTagCompound nbt) {
+        amount = NBTUtil.getInteger(nbt, "amount", DEFAULT_AMOUNT);
+        levels = NBTUtil.getBoolean(nbt, "isLevels", DEFAULT_LEVELS);
+        consume = NBTUtil.getBoolean(nbt, "consume", DEFAULT_CONSUME);
     }
 
     @Override
