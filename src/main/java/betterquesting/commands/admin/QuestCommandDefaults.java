@@ -189,6 +189,8 @@ public class QuestCommandDefaults extends QuestCommandBase {
 
             File questLineFile = new File(questLineDir, buildFileName.apply(questLineNameTranslated, questLineId) + ".json");
             NBTTagCompound questLineTag = questLine.writeToNBT(new NBTTagCompound(), null, true);
+            questLineTag.setInteger("lineID", questLineId);
+            questLineTag.setInteger("order", QuestLineDatabase.INSTANCE.getOrderIndex(entry.getID()));
             JsonHelper.WriteToFile(questLineFile, NBTConverter.NBTtoJSON_Compound(questLineTag, new JsonObject(), true));
         }
         ;
@@ -228,6 +230,7 @@ public class QuestCommandDefaults extends QuestCommandBase {
             }
 
             NBTTagCompound questTag = quest.writeToNBT(new NBTTagCompound(), true);
+            questTag.setInteger("questID", questId);
             JsonHelper.WriteToFile(questFile, NBTConverter.NBTtoJSON_Compound(questTag, new JsonObject(), true));
         }
 
@@ -316,7 +319,11 @@ public class QuestCommandDefaults extends QuestCommandBase {
                     path -> {
                         File questFile = path.toFile();
                         NBTTagCompound questTag = readNbt.apply(questFile);
-                        int questId = Integer.parseInt(questFile.getName().replaceAll("[^0-9]+", ""));
+                        int questId = questTag.hasKey("questID", 99) ? questTag.getInteger("questID") : -1;
+
+                        if (questId < 0) {
+                            questId = Integer.parseInt(questFile.getName().replaceAll("[^0-9]+", ""));
+                        }
 
                         if (questId < 0) {
                             return;
