@@ -308,6 +308,7 @@ public class QuestCommandDefaults extends QuestCommandBase {
                 .forEach(questLineDatabase::appendTag);
 
         QuestLineDatabase.INSTANCE.readFromNBT(questLineDatabase, false);
+        QuestDatabase.INSTANCE.reset();
 
         File questDir = new File(dataDir, QUEST_DIR);
         try (Stream<Path> paths = Files.walk(questDir.toPath())) {
