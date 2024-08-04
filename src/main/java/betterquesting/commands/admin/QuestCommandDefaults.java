@@ -32,6 +32,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.server.permission.DefaultPermissionLevel;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Level;
@@ -319,7 +320,7 @@ public class QuestCommandDefaults extends QuestCommandBase {
                     path -> {
                         File questFile = path.toFile();
                         NBTTagCompound questTag = readNbt.apply(questFile);
-                        int questId = questTag.hasKey("questID", 99) ? questTag.getInteger("questID") : -1;
+                        int questId = questTag.hasKey("questID", Constants.NBT.TAG_ANY_NUMERIC) ? questTag.getInteger("questID") : -1;
 
                         if (questId < 0) {
                             questId = Integer.parseInt(questFile.getName().replaceAll("[^0-9]+", ""));

@@ -6,6 +6,7 @@ import betterquesting.api.utils.JsonHelper;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.util.Constants;
 
 public class PropertyTypeItemStack extends PropertyTypeBase<BigItemStack> implements IPropertyReducible<BigItemStack> {
 
@@ -38,7 +39,7 @@ public class PropertyTypeItemStack extends PropertyTypeBase<BigItemStack> implem
     @Override
     public NBTBase reduceNBT(NBTBase nbt) {
         BigItemStack value;
-        if (nbt == null || nbt.getId() != 10) {
+        if (nbt == null || nbt.getId() != Constants.NBT.TAG_COMPOUND) {
             value = this.getDefault();
         } else {
             value = JsonHelper.JsonToItemStack((NBTTagCompound) nbt);
