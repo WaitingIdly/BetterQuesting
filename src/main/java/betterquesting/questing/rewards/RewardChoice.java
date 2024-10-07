@@ -1,6 +1,6 @@
 package betterquesting.questing.rewards;
 
-import betterquesting.NBTReplaceUtil;
+import betterquesting.NBTUtil;
 import betterquesting.api.api.QuestingAPI;
 import betterquesting.api.questing.IQuest;
 import betterquesting.api.questing.rewards.IReward;
@@ -92,8 +92,8 @@ public class RewardChoice implements IReward {
 
         for (ItemStack s : stack.getCombinedStacks()) {
             if (s.getTagCompound() != null) {
-                s.setTagCompound(NBTReplaceUtil.replaceStrings(s.getTagCompound(), "VAR_NAME", player.getName()));
-                s.setTagCompound(NBTReplaceUtil.replaceStrings(s.getTagCompound(), "VAR_UUID", QuestingAPI.getQuestingUUID(player).toString()));
+                s.setTagCompound(NBTUtil.replaceStrings(s.getTagCompound(), "VAR_NAME", player.getName()));
+                s.setTagCompound(NBTUtil.replaceStrings(s.getTagCompound(), "VAR_UUID", QuestingAPI.getQuestingUUID(player).toString()));
             }
 
             if (!player.inventory.addItemStackToInventory(s)) {
@@ -111,11 +111,17 @@ public class RewardChoice implements IReward {
         }
     }
 
+    @Deprecated
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
         NBTTagList rJson = new NBTTagList();
         for (BigItemStack stack : choices) {
-            rJson.appendTag(JsonHelper.ItemStackToJson(stack, new NBTTagCompound()));
+            rJson.appendTag(JsonHelper.ItemStackToJson(stack, new NBTTagCompound(), reduce));
         }
         nbt.setTag("choices", rJson);
         return nbt;

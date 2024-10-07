@@ -1,5 +1,6 @@
 package betterquesting.questing.tasks;
 
+import betterquesting.NBTUtil;
 import betterquesting.api.enums.EnumLogic;
 import betterquesting.api.questing.IQuest;
 import betterquesting.api.questing.tasks.IItemTask;
@@ -37,15 +38,22 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 public class TaskRetrieval implements ITaskInventory, IItemTask {
+
+    private static final boolean DEFAULT_PARTIAL_MATCH = true;
+    private static final boolean DEFAULT_IGNORE_NBT = false;
+    private static final boolean DEFAULT_CONSUME = false;
+    private static final boolean DEFAULT_GROUP_DETECT = false;
+    private static final boolean DEFAULT_AUTO_CONSUME = false;
+    private static final EnumLogic DEFAULT_ENTRY_LOGIC = EnumLogic.AND;
     private final Set<UUID> completeUsers = new TreeSet<>();
     public final NonNullList<BigItemStack> requiredItems = NonNullList.create();
     private final TreeMap<UUID, int[]> userProgress = new TreeMap<>();
-    public boolean partialMatch = true;
-    public boolean ignoreNBT = false;
-    public boolean consume = false;
-    public boolean groupDetect = false;
-    public boolean autoConsume = false;
-    public EnumLogic entryLogic = EnumLogic.AND;
+    public boolean partialMatch = DEFAULT_PARTIAL_MATCH;
+    public boolean ignoreNBT = DEFAULT_IGNORE_NBT;
+    public boolean consume = DEFAULT_CONSUME;
+    public boolean groupDetect = DEFAULT_GROUP_DETECT;
+    public boolean autoConsume = DEFAULT_AUTO_CONSUME;
+    public EnumLogic entryLogic = DEFAULT_ENTRY_LOGIC;
 
     @Override
     public String getUnlocalisedName() {
@@ -189,39 +197,38 @@ public class TaskRetrieval implements ITaskInventory, IItemTask {
         }
     }
 
+    @Deprecated
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound json) {
-        json.setBoolean("partialMatch", partialMatch);
-        json.setBoolean("ignoreNBT", ignoreNBT);
-        json.setBoolean("consume", consume);
-        json.setBoolean("groupDetect", groupDetect);
-        json.setBoolean("autoConsume", autoConsume);
-        json.setString("entryLogic", entryLogic.name());
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
+        NBTUtil.setBoolean(nbt, "partialMatch", partialMatch, DEFAULT_PARTIAL_MATCH, reduce);
+        NBTUtil.setBoolean(nbt, "ignoreNBT", ignoreNBT, DEFAULT_IGNORE_NBT, reduce);
+        NBTUtil.setBoolean(nbt, "consume", consume, DEFAULT_CONSUME, reduce);
+        NBTUtil.setBoolean(nbt, "groupDetect", groupDetect, DEFAULT_GROUP_DETECT, reduce);
+        NBTUtil.setBoolean(nbt, "autoConsume", autoConsume, DEFAULT_AUTO_CONSUME, reduce);
+        NBTUtil.setString(nbt, "entryLogic", entryLogic.name(), DEFAULT_ENTRY_LOGIC.name(), reduce);
 
         NBTTagList itemArray = new NBTTagList();
         for (BigItemStack stack : this.requiredItems) {
-            itemArray.appendTag(JsonHelper.ItemStackToJson(stack, new NBTTagCompound()));
+            itemArray.appendTag(JsonHelper.ItemStackToJson(stack, new NBTTagCompound(), reduce));
         }
-        json.setTag("requiredItems", itemArray);
+        nbt.setTag("requiredItems", itemArray);
 
-        return json;
+        return nbt;
     }
 
     @Override
     public void readFromNBT(NBTTagCompound nbt) {
-        partialMatch = nbt.getBoolean("partialMatch");
-        ignoreNBT = nbt.getBoolean("ignoreNBT");
-        consume = nbt.getBoolean("consume");
-        groupDetect = nbt.getBoolean("groupDetect");
-        autoConsume = nbt.getBoolean("autoConsume");
-        if (nbt.hasKey("entryLogic", 8)) {
-            for (EnumLogic value : EnumLogic.values()) {
-                if (value.name().equalsIgnoreCase(nbt.getString("entryLogic"))) {
-                    entryLogic = value;
-                    break;
-                }
-            }
-        }
+        partialMatch = NBTUtil.getBoolean(nbt, "partialMatch", DEFAULT_PARTIAL_MATCH);
+        ignoreNBT = NBTUtil.getBoolean(nbt, "ignoreNBT", DEFAULT_IGNORE_NBT);
+        consume = NBTUtil.getBoolean(nbt, "consume", DEFAULT_CONSUME);
+        groupDetect = NBTUtil.getBoolean(nbt, "groupDetect", DEFAULT_GROUP_DETECT);
+        autoConsume = NBTUtil.getBoolean(nbt, "autoConsume", DEFAULT_AUTO_CONSUME);
+        entryLogic = NBTUtil.getEnum(nbt, "entryLogic", EnumLogic.class, true, DEFAULT_ENTRY_LOGIC);
 
         requiredItems.clear();
         NBTTagList iList = nbt.getTagList("requiredItems", 10);

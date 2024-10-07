@@ -1,5 +1,6 @@
 package betterquesting.questing;
 
+import betterquesting.NBTUtil;
 import betterquesting.api.api.QuestingAPI;
 import betterquesting.api.enums.EnumFrameType;
 import betterquesting.api.enums.EnumLogic;
@@ -406,21 +407,29 @@ public class QuestInstance implements IQuest {
             prereqTypes.put(req, kind);
     }
 
+    @Deprecated
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound jObj) {
-        jObj.setTag("properties", qInfo.writeToNBT(new NBTTagCompound()));
-        jObj.setTag("tasks", tasks.writeToNBT(new NBTTagList(), null));
-        jObj.setTag("rewards", rewards.writeToNBT(new NBTTagList(), null));
-        jObj.setTag("preRequisites", new NBTTagIntArray(getRequirements()));
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
+        NBTTagCompound nbtProperties = qInfo.writeToNBT(new NBTTagCompound(), reduce);
+        NBTUtil.setTag(nbt, "properties", nbtProperties, reduce);
+        nbt.setTag("tasks", tasks.writeToNBT(new NBTTagList(), null, reduce));
+        NBTTagList nbtRewards = rewards.writeToNBT(new NBTTagList(), null, reduce);
+        NBTUtil.setTag(nbt, "rewards", nbtRewards, reduce);
+        if (!reduce || getRequirements().length > 0) nbt.setTag("preRequisites", new NBTTagIntArray(getRequirements()));
         if (!prereqTypes.isEmpty()) {
             byte[] types = new byte[preRequisites.length];
             int[] req = this.preRequisites;
             for (int i = 0, requirementsLength = req.length; i < requirementsLength; i++)
                 types[i] = getRequirementType(req[i]).id();
-            jObj.setTag("preRequisiteTypes", new NBTTagByteArray(types));
+            nbt.setTag("preRequisiteTypes", new NBTTagByteArray(types));
         }
 
-        return jObj;
+        return nbt;
     }
 
     @Override

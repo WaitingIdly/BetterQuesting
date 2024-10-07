@@ -33,8 +33,14 @@ public class TaskPlaceholder implements ITask {
         return nbtData.getCompoundTag("orig_prog");
     }
 
+    @Deprecated
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
         nbt.setTag("orig_data", nbtData.getCompoundTag("orig_data"));
         return nbt;
     }

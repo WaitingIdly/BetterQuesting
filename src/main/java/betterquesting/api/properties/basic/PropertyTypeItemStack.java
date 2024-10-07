@@ -1,12 +1,15 @@
 package betterquesting.api.properties.basic;
 
+import betterquesting.api.properties.IPropertyReducible;
 import betterquesting.api.utils.BigItemStack;
 import betterquesting.api.utils.JsonHelper;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.util.Constants;
 
-public class PropertyTypeItemStack extends PropertyTypeBase<BigItemStack> {
+public class PropertyTypeItemStack extends PropertyTypeBase<BigItemStack> implements IPropertyReducible<BigItemStack> {
+
     public PropertyTypeItemStack(ResourceLocation key, BigItemStack def) {
         super(key, def);
     }
@@ -25,11 +28,23 @@ public class PropertyTypeItemStack extends PropertyTypeBase<BigItemStack> {
         NBTTagCompound nbt = new NBTTagCompound();
 
         if (value == null || value.getBaseStack() == null) {
-            getDefault().writeToNBT(nbt);
+            getDefault().writeToNBT(nbt, false);
         } else {
-            value.writeToNBT(nbt);
+            value.writeToNBT(nbt, false);
         }
 
         return nbt;
     }
+
+    @Override
+    public NBTBase reduceNBT(NBTBase nbt) {
+        BigItemStack value;
+        if (nbt == null || nbt.getId() != Constants.NBT.TAG_COMPOUND) {
+            value = this.getDefault();
+        } else {
+            value = JsonHelper.JsonToItemStack((NBTTagCompound) nbt);
+        }
+        return value.writeToNBT(new NBTTagCompound(), true);
+    }
+
 }

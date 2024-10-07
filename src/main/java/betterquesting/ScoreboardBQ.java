@@ -36,12 +36,18 @@ public class ScoreboardBQ implements INBTPartial<NBTTagList, UUID> {
         }
     }
 
+    @Deprecated
     @Override
     public synchronized NBTTagList writeToNBT(NBTTagList nbt, @Nullable List<UUID> users) {
+        return writeToNBT(nbt, users, false);
+    }
+
+    @Override
+    public synchronized NBTTagList writeToNBT(NBTTagList nbt, @Nullable List<UUID> users, boolean reduce) {
         for (Entry<String, ScoreBQ> entry : objectives.entrySet()) {
             NBTTagCompound jObj = new NBTTagCompound();
             jObj.setString("name", entry.getKey());
-            jObj.setTag("scores", entry.getValue().writeToNBT(new NBTTagList(), users));
+            jObj.setTag("scores", entry.getValue().writeToNBT(new NBTTagList(), users, reduce));
             nbt.appendTag(jObj);
         }
 

@@ -20,12 +20,9 @@ import betterquesting.network.handlers.NetQuestSync;
 import betterquesting.network.handlers.NetSettingSync;
 import betterquesting.questing.QuestDatabase;
 import betterquesting.questing.QuestInstance;
-import betterquesting.questing.QuestLine;
 import betterquesting.questing.QuestLineDatabase;
 import betterquesting.storage.QuestSettings;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.MultimapBuilder;
 import com.google.gson.JsonObject;
 import net.minecraft.command.CommandBase;
@@ -35,9 +32,9 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.server.permission.DefaultPermissionLevel;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,8 +42,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -168,7 +166,7 @@ public class QuestCommandDefaults extends QuestCommandBase {
         boolean editMode = QuestSettings.INSTANCE.getProperty(NativeProps.EDIT_MODE);
         // Don't write edit mode to json
         QuestSettings.INSTANCE.setProperty(NativeProps.EDIT_MODE, false);
-        NBTTagCompound settingsTag = QuestSettings.INSTANCE.writeToNBT(new NBTTagCompound());
+        NBTTagCompound settingsTag = QuestSettings.INSTANCE.writeToNBT(new NBTTagCompound(), true);
         settingsTag.setString("format", BetterQuesting.FORMAT);
         JsonHelper.WriteToFile(settingsFile, NBTConverter.NBTtoJSON_Compound(settingsTag, new JsonObject(), true));
         // Turn on edit mode if it was on before
@@ -191,7 +189,9 @@ public class QuestCommandDefaults extends QuestCommandBase {
             String questLineNameTranslated = QuestTranslation.translate(questLineName);
 
             File questLineFile = new File(questLineDir, buildFileName.apply(questLineNameTranslated, questLineId) + ".json");
-            NBTTagCompound questLineTag = questLine.writeToNBT(new NBTTagCompound(), null);
+            NBTTagCompound questLineTag = questLine.writeToNBT(new NBTTagCompound(), null, true);
+            questLineTag.setInteger("lineID", questLineId);
+            questLineTag.setInteger("order", QuestLineDatabase.INSTANCE.getOrderIndex(entry.getID()));
             JsonHelper.WriteToFile(questLineFile, NBTConverter.NBTtoJSON_Compound(questLineTag, new JsonObject(), true));
         }
         ;
@@ -230,7 +230,8 @@ public class QuestCommandDefaults extends QuestCommandBase {
                 return;
             }
 
-            NBTTagCompound questTag = quest.writeToNBT(new NBTTagCompound());
+            NBTTagCompound questTag = quest.writeToNBT(new NBTTagCompound(), true);
+            questTag.setInteger("questID", questId);
             JsonHelper.WriteToFile(questFile, NBTConverter.NBTtoJSON_Compound(questTag, new JsonObject(), true));
         }
 
@@ -247,10 +248,10 @@ public class QuestCommandDefaults extends QuestCommandBase {
         NBTTagCompound base = new NBTTagCompound();
 
         QuestSettings.INSTANCE.setProperty(NativeProps.EDIT_MODE, false);
-        base.setTag("questSettings", QuestSettings.INSTANCE.writeToNBT(new NBTTagCompound()));
+        base.setTag("questSettings", QuestSettings.INSTANCE.writeToNBT(new NBTTagCompound(), true));
         QuestSettings.INSTANCE.setProperty(NativeProps.EDIT_MODE, editMode);
-        base.setTag("questDatabase", QuestDatabase.INSTANCE.writeToNBT(new NBTTagList(), null));
-        base.setTag("questLines", QuestLineDatabase.INSTANCE.writeToNBT(new NBTTagList(), null));
+        base.setTag("questDatabase", QuestDatabase.INSTANCE.writeToNBT(new NBTTagList(), null, true));
+        base.setTag("questLines", QuestLineDatabase.INSTANCE.writeToNBT(new NBTTagList(), null, true));
         base.setString("format", BetterQuesting.FORMAT);
         base.setString("build", ModReference.VERSION);
         JsonHelper.WriteToFile(legacyFile, NBTConverter.NBTtoJSON_Compound(base, new JsonObject(), true));
@@ -274,7 +275,7 @@ public class QuestCommandDefaults extends QuestCommandBase {
         boolean editMode = QuestSettings.INSTANCE.getProperty(NativeProps.EDIT_MODE);
         boolean hardMode = QuestSettings.INSTANCE.getProperty(NativeProps.HARDCORE);
         NBTTagList jsonP = QuestDatabase.INSTANCE.writeProgressToNBT(new NBTTagList(), null);
-        
+
         File settingsFile = new File(dataDir, SETTINGS_FILE);
         if (!settingsFile.exists()) {
             QuestingAPI.getLogger().log(Level.ERROR, "Failed to find file\n{}", settingsFile);
@@ -311,6 +312,7 @@ public class QuestCommandDefaults extends QuestCommandBase {
                 .forEach(questLineDatabase::appendTag);
 
         QuestLineDatabase.INSTANCE.readFromNBT(questLineDatabase, false);
+        QuestDatabase.INSTANCE.reset();
 
         File questDir = new File(dataDir, QUEST_DIR);
         try (Stream<Path> paths = Files.walk(questDir.toPath())) {
@@ -318,7 +320,11 @@ public class QuestCommandDefaults extends QuestCommandBase {
                     path -> {
                         File questFile = path.toFile();
                         NBTTagCompound questTag = readNbt.apply(questFile);
-                        int questId = Integer.parseInt(questFile.getName().replaceAll("[^0-9]+", ""));
+                        int questId = questTag.hasKey("questID", Constants.NBT.TAG_ANY_NUMERIC) ? questTag.getInteger("questID") : -1;
+
+                        if (questId < 0) {
+                            questId = Integer.parseInt(questFile.getName().replaceAll("[^0-9]+", ""));
+                        }
 
                         if (questId < 0) {
                             return;

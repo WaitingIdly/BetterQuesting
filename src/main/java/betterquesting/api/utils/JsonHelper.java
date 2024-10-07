@@ -1,5 +1,6 @@
 package betterquesting.api.utils;
 
+import betterquesting.NBTUtil;
 import betterquesting.api.api.QuestingAPI;
 import betterquesting.api.placeholders.ItemPlaceholder;
 import betterquesting.api.placeholders.PlaceholderConverter;
@@ -279,14 +280,19 @@ public class JsonHelper {
     public static BigItemStack JsonToItemStack(NBTTagCompound nbt) {
         Item preCheck = Item.getByNameOrId(nbt.hasKey("id", 99) ? "" + nbt.getShort("id") : nbt.getString("id"));
         if (preCheck != null && preCheck != ItemPlaceholder.placeholder) return new BigItemStack(nbt);
-        return PlaceholderConverter.convertItem(preCheck, nbt.getString("id"), nbt.getInteger("Count"), nbt.getShort("Damage"), nbt.getString("OreDict"), !nbt.hasKey("tag", 10) ? null : nbt.getCompoundTag("tag"));
+        return PlaceholderConverter.convertItem(preCheck, nbt.getString("id"), NBTUtil.getInteger(nbt, "Count", 1), nbt.getShort("Damage"), nbt.getString("OreDict"), !nbt.hasKey("tag", 10) ? null : nbt.getCompoundTag("tag"));
     }
 
     /**
      * Use this for quests instead of converter NBT because this doesn't use ID numbers
      */
     public static NBTTagCompound ItemStackToJson(BigItemStack stack, NBTTagCompound nbt) {
-        if (stack != null) stack.writeToNBT(nbt);
+        return ItemStackToJson(stack, nbt, false);
+    }
+
+    public static NBTTagCompound ItemStackToJson(BigItemStack stack, NBTTagCompound nbt, boolean reduce) {
+        if (stack != null)
+            stack.writeToNBT(nbt, reduce);
         return nbt;
     }
 

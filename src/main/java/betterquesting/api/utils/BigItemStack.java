@@ -1,5 +1,6 @@
 package betterquesting.api.utils;
 
+import betterquesting.NBTUtil;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -17,10 +18,14 @@ import java.util.List;
  * <b>For storage purposes only!
  */
 public class BigItemStack {
-    private static final OreIngredient NO_ORE = new OreIngredient("");
+
+    private static final short DEFAULT_DAMAGE = 0;
+    private static final String DEFAULT_OREDICT = "";
+    private static final OreIngredient NO_ORE = new OreIngredient(DEFAULT_OREDICT);
+
     private final ItemStack baseStack;
     public int stackSize;
-    private String oreDict = "";
+    private String oreDict = DEFAULT_OREDICT;
     private OreIngredient oreIng = NO_ORE;
 
     public BigItemStack(ItemStack stack) {
@@ -34,7 +39,7 @@ public class BigItemStack {
     }
 
     public BigItemStack(@Nonnull Block block, int amount) {
-        this(block, amount, 0);
+        this(block, amount, DEFAULT_DAMAGE);
     }
 
     public BigItemStack(@Nonnull Block block, int amount, int damage) {
@@ -46,7 +51,7 @@ public class BigItemStack {
     }
 
     public BigItemStack(@Nonnull Item item, int amount) {
-        this(item, amount, 0);
+        this(item, amount, DEFAULT_DAMAGE);
     }
 
     public BigItemStack(@Nonnull Item item, int amount, int damage) {
@@ -142,18 +147,24 @@ public class BigItemStack {
         NBTTagCompound itemNBT = tags.copy();
         itemNBT.setInteger("Count", 1);
         if (tags.hasKey("id", 99)) {
-            itemNBT.setString("id", "" + tags.getShort("id"));
+            itemNBT.setString("id", String.valueOf(tags.getShort("id")));
         }
-        this.stackSize = tags.getInteger("Count");
+        this.stackSize = NBTUtil.getInteger(tags, "Count", 1);
         this.setOreDict(tags.getString("OreDict"));
         this.baseStack = new ItemStack(itemNBT); // Minecraft does the ID conversions for me
         if (tags.getShort("Damage") < 0) this.baseStack.setItemDamage(OreDictionary.WILDCARD_VALUE);
     }
 
+    @Deprecated
     public NBTTagCompound writeToNBT(NBTTagCompound tags) {
+        return writeToNBT(tags, false);
+    }
+
+    public NBTTagCompound writeToNBT(NBTTagCompound tags, boolean reduce) {
         baseStack.writeToNBT(tags);
         tags.setInteger("Count", stackSize);
-        tags.setString("OreDict", oreDict);
+        if (reduce && baseStack.getItemDamage() == DEFAULT_DAMAGE) tags.removeTag("Damage");
+        NBTUtil.setString(tags, "OreDict", oreDict, "", reduce);
         return tags;
     }
 }

@@ -1,5 +1,6 @@
 package betterquesting.questing.tasks;
 
+import betterquesting.NBTUtil;
 import betterquesting.api.questing.IQuest;
 import betterquesting.api.questing.tasks.IFluidTask;
 import betterquesting.api.questing.tasks.IItemTask;
@@ -37,14 +38,19 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class TaskFluid implements ITaskInventory, IFluidTask, IItemTask {
+
+    private static final boolean DEFAULT_IGNORE_NBT = false;
+    private static final boolean DEFAULT_CONSUME = true;
+    private static final boolean DEFAULT_GROUP_DETECT = false;
+    private static final boolean DEFAULT_AUTO_CONSUME = false;
     private final Set<UUID> completeUsers = new TreeSet<>();
     public final NonNullList<FluidStack> requiredFluids = NonNullList.create();
     public final TreeMap<UUID, int[]> userProgress = new TreeMap<>();
     //public boolean partialMatch = true; // Not many ideal ways of implementing this with fluid handlers
-    public boolean ignoreNbt = false;
-    public boolean consume = true;
-    public boolean groupDetect = false;
-    public boolean autoConsume = false;
+    public boolean ignoreNbt = DEFAULT_IGNORE_NBT;
+    public boolean consume = DEFAULT_CONSUME;
+    public boolean groupDetect = DEFAULT_GROUP_DETECT;
+    public boolean autoConsume = DEFAULT_AUTO_CONSUME;
 
     @Override
     public ResourceLocation getFactoryID() {
@@ -184,13 +190,19 @@ public class TaskFluid implements ITaskInventory, IFluidTask, IItemTask {
         }
     }
 
+    @Deprecated
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
         //json.setBoolean("partialMatch", partialMatch);
-        nbt.setBoolean("ignoreNBT", ignoreNbt);
-        nbt.setBoolean("consume", consume);
-        nbt.setBoolean("groupDetect", groupDetect);
-        nbt.setBoolean("autoConsume", autoConsume);
+        NBTUtil.setBoolean(nbt, "ignoreNBT", ignoreNbt, DEFAULT_IGNORE_NBT, reduce);
+        NBTUtil.setBoolean(nbt, "consume", consume, DEFAULT_CONSUME, reduce);
+        NBTUtil.setBoolean(nbt, "groupDetect", groupDetect, DEFAULT_GROUP_DETECT, reduce);
+        NBTUtil.setBoolean(nbt, "autoConsume", autoConsume, DEFAULT_AUTO_CONSUME, reduce);
 
         NBTTagList itemArray = new NBTTagList();
         for (FluidStack stack : this.requiredFluids) {
@@ -204,10 +216,10 @@ public class TaskFluid implements ITaskInventory, IFluidTask, IItemTask {
     @Override
     public void readFromNBT(NBTTagCompound nbt) {
         //partialMatch = json.getBoolean("partialMatch");
-        ignoreNbt = nbt.getBoolean("ignoreNBT");
-        consume = nbt.getBoolean("consume");
-        groupDetect = nbt.getBoolean("groupDetect");
-        autoConsume = nbt.getBoolean("autoConsume");
+        ignoreNbt = NBTUtil.getBoolean(nbt, "ignoreNBT", DEFAULT_IGNORE_NBT);
+        consume = NBTUtil.getBoolean(nbt, "consume", DEFAULT_CONSUME);
+        groupDetect = NBTUtil.getBoolean(nbt, "groupDetect", DEFAULT_GROUP_DETECT);
+        autoConsume = NBTUtil.getBoolean(nbt, "autoConsume", DEFAULT_AUTO_CONSUME);
 
         requiredFluids.clear();
         NBTTagList fList = nbt.getTagList("requiredFluids", 10);

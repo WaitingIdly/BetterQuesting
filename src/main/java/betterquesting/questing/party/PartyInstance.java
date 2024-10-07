@@ -137,7 +137,7 @@ public class PartyInstance implements IParty {
     }
 
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound json) {
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
         NBTTagList memJson = new NBTTagList();
         for (Entry<UUID, EnumPartyStatus> mem : members.entrySet()) {
             NBTTagCompound jm = new NBTTagCompound();
@@ -145,11 +145,11 @@ public class PartyInstance implements IParty {
             jm.setString("status", mem.getValue().toString());
             memJson.appendTag(jm);
         }
-        json.setTag("members", memJson);
+        nbt.setTag("members", memJson);
 
-        json.setTag("properties", pInfo.writeToNBT(new NBTTagCompound()));
+        nbt.setTag("properties", pInfo.writeToNBT(new NBTTagCompound(), false));
 
-        return json;
+        return nbt;
     }
 
     @Override
@@ -181,7 +181,7 @@ public class PartyInstance implements IParty {
 
     @Override
     public NBTTagCompound writeProperties(NBTTagCompound nbt) {
-        return pInfo.writeToNBT(nbt);
+        return pInfo.writeToNBT(nbt, true);
     }
 
     @Override

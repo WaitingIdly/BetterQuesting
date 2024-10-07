@@ -1,5 +1,6 @@
 package betterquesting.questing.tasks;
 
+import betterquesting.NBTUtil;
 import betterquesting.api.questing.IQuest;
 import betterquesting.api.questing.tasks.ITask;
 import betterquesting.api.utils.ItemComparison;
@@ -29,12 +30,17 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class TaskTame implements ITask {
+
+    private static final String DEFAULT_ENTITY = "minecraft:wolf";
+    private static final int DEFAULT_REQUIRED = 1;
+    private static final boolean DEFAULT_IGNORE_NBT = true;
+    private static final boolean DEFAULT_SUBTYPES = true;
     private final Set<UUID> completeUsers = new TreeSet<>();
     public final HashMap<UUID, Integer> userProgress = new HashMap<>();
-    public String idName = "minecraft:wolf";
-    public int required = 1;
-    public boolean ignoreNBT = true;
-    public boolean subtypes = true;
+    public String idName = DEFAULT_ENTITY;
+    public int required = DEFAULT_REQUIRED;
+    public boolean ignoreNBT = DEFAULT_IGNORE_NBT;
+    public boolean subtypes = DEFAULT_SUBTYPES;
 
     /**
      * NBT representation of the intended target. Used only for NBT comparison checks
@@ -128,24 +134,30 @@ public class TaskTame implements ITask {
         return new GuiEditTaskTame(parent, quest, this);
     }
 
+    @Deprecated
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound json) {
-        json.setString("target", idName);
-        json.setInteger("required", required);
-        json.setBoolean("subtypes", subtypes);
-        json.setBoolean("ignoreNBT", ignoreNBT);
-        json.setTag("targetNBT", targetTags);
-
-        return json;
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
+        return writeToNBT(nbt, false);
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound json) {
-        idName = json.getString("target");
-        required = json.getInteger("required");
-        subtypes = json.getBoolean("subtypes");
-        ignoreNBT = json.getBoolean("ignoreNBT");
-        targetTags = json.getCompoundTag("targetNBT");
+    public NBTTagCompound writeToNBT(NBTTagCompound nbt, boolean reduce) {
+        NBTUtil.setString(nbt, "target", idName, DEFAULT_ENTITY, reduce);
+        NBTUtil.setInteger(nbt, "required", required, DEFAULT_REQUIRED, reduce);
+        NBTUtil.setBoolean(nbt, "subtypes", subtypes, DEFAULT_SUBTYPES, reduce);
+        NBTUtil.setBoolean(nbt, "ignoreNBT", ignoreNBT, DEFAULT_IGNORE_NBT, reduce);
+        NBTUtil.setTag(nbt, "targetNBT", targetTags, reduce);
+
+        return nbt;
+    }
+
+    @Override
+    public void readFromNBT(NBTTagCompound nbt) {
+        idName = NBTUtil.getString(nbt, "target", DEFAULT_ENTITY);
+        required = NBTUtil.getInteger(nbt, "required", DEFAULT_REQUIRED);
+        subtypes = NBTUtil.getBoolean(nbt, "subtypes", DEFAULT_SUBTYPES);
+        ignoreNBT = NBTUtil.getBoolean(nbt, "ignoreNBT", DEFAULT_IGNORE_NBT);
+        targetTags = nbt.getCompoundTag("targetNBT");
     }
 
     @Override
