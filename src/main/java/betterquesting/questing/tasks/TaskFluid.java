@@ -11,10 +11,13 @@ import betterquesting.api2.storage.DBEntry;
 import betterquesting.api2.utils.ParticipantInfo;
 import betterquesting.client.gui2.tasks.PanelTaskFluid;
 import betterquesting.core.BetterQuesting;
+import betterquesting.questing.party.PartyInventory;
 import betterquesting.questing.tasks.factory.FactoryTaskFluid;
+import com.google.common.base.Preconditions;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagInt;
@@ -23,7 +26,7 @@ import net.minecraft.nbt.NBTTagString;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.Tuple;
+import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
@@ -43,14 +46,15 @@ public class TaskFluid implements ITaskInventory, IFluidTask, IItemTask {
     private static final boolean DEFAULT_CONSUME = false;
     private static final boolean DEFAULT_GROUP_DETECT = false;
     private static final boolean DEFAULT_AUTO_CONSUME = false;
-    private final Set<UUID> completeUsers = new TreeSet<>();
+    private final Set<UUID> completeUsers = new ObjectOpenHashSet<>();
     public final NonNullList<FluidStack> requiredFluids = NonNullList.create();
-    public final TreeMap<UUID, int[]> userProgress = new TreeMap<>();
+    public final Map<UUID, int[]> userProgress = new Object2ObjectOpenHashMap<>();
     //public boolean partialMatch = true; // Not many ideal ways of implementing this with fluid handlers
     public boolean ignoreNbt = DEFAULT_IGNORE_NBT;
     public boolean consume = DEFAULT_CONSUME;
     public boolean groupDetect = DEFAULT_GROUP_DETECT;
     public boolean autoConsume = DEFAULT_AUTO_CONSUME;
+    private boolean progressChanged = false;
 
     @Override
     public ResourceLocation getFactoryID() {
@@ -81,114 +85,218 @@ public class TaskFluid implements ITaskInventory, IFluidTask, IItemTask {
 
     @Override
     public void detect(ParticipantInfo pInfo, DBEntry<IQuest> quest) {
-        if (isComplete(pInfo.UUID)) return;
+        if (isComplete(pInfo.UUID)) {
+            return;
+        }
+        int updatedReqs = 0;
+        PartyInventory partyInv = pInfo.getPartyInventory();
 
-        // Removing the consume check here would make the task cheaper on groups and for that reason sharing is restricted to detect only
-        final List<Tuple<UUID, int[]>> progress = getBulkProgress(consume ? Collections.singletonList(pInfo.UUID) : pInfo.ALL_UUIDS);
-        boolean updated = false;
+        boolean taskConsumes = consume;
+        // The current progress so far for the player
+        int[] currentProgress = taskConsumes ? getUserProgress(pInfo.UUID) : null;
+        int reqSize = requiredFluids.size();
+        // The progress to fill based on current PartyInventory snapshot
+        int[] invProgress = new int[reqSize];
 
-        if (!consume) {
-            if (groupDetect) // Reset all detect progress
-            {
-                progress.forEach((value) -> Arrays.fill(value.getSecond(), 0));
-            } else {
-                for (int i = 0; i < requiredFluids.size(); i++) {
-                    final int r = requiredFluids.get(i).amount;
-                    for (Tuple<UUID, int[]> value : progress) {
-                        int n = value.getSecond()[i];
-                        if (n != 0 && n < r) {
-                            value.getSecond()[i] = 0;
-                            updated = true;
-                        }
-                    }
-                }
+        for (int reqI = 0; reqI < reqSize; reqI++) {
+            final FluidStack rStack = requiredFluids.get(reqI);
+
+            var fluidHandlerContext = partyInv.getFluidHandlersFor(rStack, taskConsumes, ignoreNbt);
+            if (fluidHandlerContext == PartyInventory.FluidMatchContext.EMPTY) continue;
+
+            int reqRemaining = rStack.amount;
+            if (taskConsumes) {
+                // Account for already consumed progress
+                reqRemaining -= currentProgress[reqI];
+            }
+
+            int progressAmount = Math.min(reqRemaining, fluidHandlerContext.drainableAmount());
+            progressAmount = consumeRequired(rStack, progressAmount, fluidHandlerContext);
+            if (progressAmount > 0) {
+                invProgress[reqI] += progressAmount;
+                // Allows the fluid detection to split across multiple requirements.
+                fluidHandlerContext.shrink(rStack, progressAmount);
+                updatedReqs++;
             }
         }
 
-        final List<InventoryPlayer> invoList;
-        if (consume) {
-            // We do not support consuming resources from other member's invetories.
-            // This could otherwise be abused to siphon items/fluids unknowingly
-            invoList = Collections.singletonList(pInfo.PLAYER.inventory);
-        } else {
-            invoList = new ArrayList<>();
-            pInfo.ACTIVE_PLAYERS.forEach((p) -> invoList.add(p.inventory));
+        if (updatedReqs > 0) {
+            // Reset counts used for split stack detection
+            partyInv.resetFluidAmounts(taskConsumes);
+            // Update cached progress and check completion
+            int[] updatedProgress = updateBulkProgress(invProgress, pInfo);
+            checkAndComplete(pInfo, quest, updatedProgress);
         }
-
-        for (InventoryPlayer invo : invoList) {
-            for (int i = 0; i < invo.getSizeInventory(); i++) {
-                ItemStack stack = invo.getStackInSlot(i);
-                if (stack.isEmpty()) continue;
-                IFluidHandlerItem handler = FluidUtil.getFluidHandler(stack);
-                if (handler == null) continue;
-
-                boolean hasDrained = false;
-
-                for (int j = 0; j < requiredFluids.size(); j++) {
-                    final FluidStack rStack = requiredFluids.get(j);
-                    FluidStack drainOG = rStack.copy();
-                    if (ignoreNbt) drainOG.tag = null;
-
-                    // Pre-check
-                    FluidStack sample = handler.drain(drainOG, false);
-                    if (sample == null || sample.amount <= 0) continue;
-
-                    // Theoretically this could work in consume mode for parties but the priority order and manual submission code would need changing
-                    for (Tuple<UUID, int[]> value : progress) {
-                        if (value.getSecond()[j] >= rStack.amount) continue;
-                        int remaining = rStack.amount - value.getSecond()[j];
-
-                        FluidStack drain = rStack.copy();
-                        drain.amount = remaining / stack.getCount(); // Must be a multiple of the stack size
-                        if (ignoreNbt) drain.tag = null;
-                        if (drain.amount <= 0) continue;
-
-                        FluidStack fluid = handler.drain(drain, consume); // TODO: Look into reducing this to a single call if possible
-                        if (fluid == null || fluid.amount <= 0) continue;
-
-                        value.getSecond()[j] += fluid.amount * stack.getCount();
-                        hasDrained = true;
-                        updated = true;
-                    }
-                }
-
-                if (hasDrained && consume) invo.setInventorySlotContents(i, handler.getContainer());
-            }
-        }
-
-        if (updated) setBulkProgress(progress);
-        checkAndComplete(pInfo, quest, updated);
     }
 
-    private void checkAndComplete(ParticipantInfo pInfo, DBEntry<IQuest> quest, boolean resync) {
-        final List<Tuple<UUID, int[]>> progress = getBulkProgress(consume ? Collections.singletonList(pInfo.UUID) : pInfo.ALL_UUIDS);
-        boolean updated = resync;
+    /**
+     * Consume the given amount from the player's inventory if necessary.
+     *
+     * @param rStack          the required fluid stack
+     * @param amountToConsume the amount to try to consume
+     * @param context         the context with compatible fluid handlers
+     * @return how much was actually consumed, or amountToConsume if this is not a consume task
+     */
+    private int consumeRequired(FluidStack rStack, int amountToConsume, PartyInventory.FluidMatchContext context) {
+        // Theoretically this could work in consume mode for parties but the priority order and manual submission code would need changing
+        if (!consume) return amountToConsume;
 
-        topLoop:
-        for (Tuple<UUID, int[]> value : progress) {
-            for (int j = 0; j < requiredFluids.size(); j++) {
-                if (value.getSecond()[j] >= requiredFluids.get(j).amount) continue;
-                continue topLoop;
+        FluidStack drain = new FluidStack(rStack.getFluid(), amountToConsume, ignoreNbt ? null : rStack.tag);
+        int remaining = drain.amount;
+        int totalDrained = 0;
+        for (var indexedContainer : context.indexedFluidContainers()) {
+            final IFluidHandlerItem handler = indexedContainer.handler(false);
+            if (handler == null) continue;
+            int numContainers = indexedContainer.stackCount();
+
+            // Amount remaining to drain
+            final FluidStack toDrain = drain.copy();
+            toDrain.amount = remaining;
+            // The context did the simulation, so do the actual drain.
+            final FluidStack drained = handler.drain(toDrain, true);
+            if (drained == null || drained.amount <= 0) continue;
+
+            int itemsNeeded = MathHelper.ceil((double) remaining / drained.amount);
+            int itemsToConsume = Math.min(numContainers, itemsNeeded);
+            // Amount of items that were drained fully
+            int amountFullDrained = drained.amount * itemsToConsume;
+
+            if (amountFullDrained > remaining) {
+                // Handle partial drain for last needed container
+                int partialAmount = remaining % drained.amount;
+                IFluidHandlerItem partialHandler = indexedContainer.handler(false);
+                if (partialHandler != null) {
+                    // Build the handler's state after partial drain
+                    FluidStack toDrainPartial = drain.copy();
+                    toDrainPartial.amount = partialAmount;
+                    FluidStack drainedPartial = partialHandler.drain(toDrainPartial, true);
+                    if (drainedPartial != null && drainedPartial.amount > 0) {
+                        // Update the single, partially drained container
+                        indexedContainer.updateFluidContainer(partialHandler, 1, consume);
+                        totalDrained += drainedPartial.amount;
+                        remaining -= drainedPartial.amount;
+                        // Partial drain succeeded and updated, so don't count it with the other full drains
+                        amountFullDrained -= drained.amount;
+                        itemsToConsume--;
+                    }
+                }
             }
 
-            updated = true;
-
-            if (consume) {
-                setComplete(value.getFirst());
-            } else {
-                progress.forEach((pair) -> setComplete(pair.getFirst()));
+            // Make sure to update the inventory and cached container (fully drained ones only)
+            indexedContainer.updateFluidContainer(handler, itemsToConsume, consume);
+            totalDrained += amountFullDrained;
+            remaining -= amountFullDrained;
+            if (remaining <= 0) {
                 break;
             }
         }
+        return totalDrained;
+    }
 
-        if (updated) {
-            if (consume) {
-                pInfo.markDirty(Collections.singletonList(quest.getID()));
-            } else {
-                pInfo.markDirtyParty(Collections.singletonList(quest.getID()));
+    @Nonnull
+    private int[] updateBulkProgress(int[] playerProgress, ParticipantInfo pInfo) {
+        int[] updatedProgress = updateUserProgress(pInfo.UUID, playerProgress);
+        if (!consume) {
+            // Update all other party member's progress with playerProgress
+            for (UUID uuid : pInfo.ALL_UUIDS) {
+                if (uuid == pInfo.UUID) continue;
+                updateUserProgress(uuid, playerProgress);
             }
         }
+        return updatedProgress;
     }
+
+    /**
+     * Update the task progress for given user
+     *
+     * @param userUUID      the user's id
+     * @param progressIn    the progress to merge, treated as immutable
+     * @return the updated task progress
+     */
+    private int[] updateUserProgress(UUID userUUID, int[] progressIn) {
+        return userProgress.merge(userUUID, progressIn, (existingProgress, progressToMerge) -> {
+            // Somehow the existing progress doesn't reflect current requirements, only use new progress.
+            if (existingProgress.length != requiredFluids.size()) {
+                progressChanged = true;
+                return progressToMerge;
+            }
+            // Group-detect requires all requirements to be met within this single detection.
+            if (groupDetect) {
+                progressChanged = true;
+                return progressToMerge;
+            }
+
+            for (int i = 0; i < existingProgress.length; i++) {
+                // Skip if already fulfilled
+                if (existingProgress[i] >= requiredFluids.get(i).amount) continue;
+
+                if (consume) {
+                    // Make sure we keep the progress that has already consumed stuff before
+                    existingProgress[i] += progressToMerge[i];
+                    progressChanged = true;
+                } else if (existingProgress[i] != progressToMerge[i]) {
+                    // Otherwise the progressIn overwrites the current progress
+                    existingProgress[i] = progressToMerge[i];
+                    progressChanged = true;
+                }
+            }
+            return existingProgress;
+        });
+    }
+
+    @Nonnull
+    public int[] getUserProgress(UUID uuidIn) {
+        return userProgress.compute(uuidIn, (uuid, progress) ->
+                progress == null || progress.length != requiredFluids.size() ? new int[requiredFluids.size()] : progress);
+    }
+
+    /**
+     * Check if the detected progress allows completion of the task's quest.
+     * @param pInfo the participant's info
+     * @param quest the quest to possibly complete
+     * @param progress the updated progress
+     */
+    private void checkAndComplete(ParticipantInfo pInfo, DBEntry<IQuest> quest, int[] progress) {
+        if (progressChanged) {
+            progressChanged = false;
+            var questID = Collections.singletonList(quest.getID());
+            if (consume) {
+                pInfo.markDirty(questID);
+            } else {
+                pInfo.markDirtyParty(questID);
+            }
+        }
+        // Check all requirements are complete
+        for (int i = 0; i < progress.length; i++) {
+            if (progress[i] < requiredFluids.get(i).amount) {
+                return;
+            }
+        }
+
+        if (consume) {
+            setComplete(pInfo.UUID);
+        } else {
+            pInfo.ALL_UUIDS.forEach(this::setComplete);
+        }
+    }
+
+    /**
+     * Check if the given progress for a single player would complete the quest.
+     * @param uuid the UUID of the player
+     * @param progress the updated progress
+     */
+    private void checkAndComplete(UUID uuid, int[] progress) {
+        // Check all requirements are complete
+        for (int i = 0; i < progress.length; i++) {
+            if (progress[i] < requiredFluids.get(i).amount) {
+                return;
+            }
+        }
+
+        setComplete(uuid);
+    }
+
+    /* NBT handling */
 
     @Deprecated
     @Override
@@ -271,22 +379,30 @@ public class TaskFluid implements ITaskInventory, IFluidTask, IItemTask {
 
         if (users != null) {
             users.forEach((uuid) -> {
-                if (completeUsers.contains(uuid)) jArray.appendTag(new NBTTagString(uuid.toString()));
+                if (completeUsers.contains(uuid)) {
+                    jArray.appendTag(new NBTTagString(uuid.toString()));
+                }
 
                 int[] data = userProgress.get(uuid);
                 if (data != null) {
                     NBTTagCompound pJson = new NBTTagCompound();
                     pJson.setString("uuid", uuid.toString());
                     NBTTagList pArray = new NBTTagList(); // TODO: Why the heck isn't this just an int array?!
-                    for (int i : data) pArray.appendTag(new NBTTagInt(i));
+                    for (int i : data) {
+                        pArray.appendTag(new NBTTagInt(i));
+                    }
                     pJson.setTag("data", pArray);
                     progArray.appendTag(pJson);
                 }
             });
         } else {
-            completeUsers.forEach((uuid) -> jArray.appendTag(new NBTTagString(uuid.toString())));
+            // Ensure consistent order when writing
+            TreeSet<UUID> sortedCompleteUsers = new TreeSet<>(completeUsers);
+            TreeMap<UUID, int[]> sortedProgress = new TreeMap<>(userProgress);
 
-            userProgress.forEach((uuid, data) -> {
+            sortedCompleteUsers.forEach((uuid) -> jArray.appendTag(new NBTTagString(uuid.toString())));
+
+            sortedProgress.forEach((uuid, data) -> {
                 NBTTagCompound pJson = new NBTTagCompound();
                 pJson.setString("uuid", uuid.toString());
                 NBTTagList pArray = new NBTTagList(); // TODO: Why the heck isn't this just an int array?!
@@ -331,7 +447,7 @@ public class TaskFluid implements ITaskInventory, IFluidTask, IItemTask {
             return false;
         }
 
-        int[] progress = getUsersProgress(owner);
+        int[] progress = getUserProgress(owner);
 
         for (int j = 0; j < requiredFluids.size(); j++) {
             FluidStack rStack = requiredFluids.get(j).copy();
@@ -368,12 +484,15 @@ public class TaskFluid implements ITaskInventory, IFluidTask, IItemTask {
         return submitFluidInternal(owner, quest, fluid, true);
     }
 
-    private FluidStack submitFluidInternal(UUID owner, DBEntry<IQuest> quest, FluidStack fluid, boolean doFill) {
-        if (owner == null || fluid == null || fluid.amount <= 0 || !consume || isComplete(owner) || requiredFluids.size() <= 0) {
-            return fluid;
+    private FluidStack submitFluidInternal(UUID owner, DBEntry<IQuest> quest, FluidStack fluidIn, boolean doFill) {
+        if (owner == null || fluidIn == null || fluidIn.amount <= 0 || !consume || isComplete(owner) || requiredFluids.size() <= 0) {
+            return fluidIn;
         }
 
-        int[] progress = getUsersProgress(owner).clone();
+        FluidStack fluid = fluidIn.copy();
+
+        // Direct reference to value in userProgress
+        int[] progress = getUserProgress(owner);
         boolean updated = false;
 
         for (int j = 0; j < requiredFluids.size(); j++) {
@@ -397,24 +516,13 @@ public class TaskFluid implements ITaskInventory, IFluidTask, IItemTask {
         }
 
         if (updated && doFill) {
-            setUserProgress(owner, progress);
-
             MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
             EntityPlayerMP player = server == null ? null : server.getPlayerList().getPlayerByUUID(owner);
 
             if (player != null) {
-                checkAndComplete(new ParticipantInfo(player), quest, true);
+                checkAndComplete(new ParticipantInfo(player), quest, progress);
             } else {
-                // It's implied to be a consume task so no need to lookup the party
-                boolean hasAll = true;
-                for (int j = 0; j < requiredFluids.size(); j++) {
-                    if (progress[j] >= requiredFluids.get(j).amount) continue;
-
-                    hasAll = false;
-                    break;
-                }
-
-                if (hasAll) setComplete(owner);
+                checkAndComplete(owner, progress);
             }
         }
 
@@ -448,26 +556,6 @@ public class TaskFluid implements ITaskInventory, IFluidTask, IItemTask {
         }
 
         return hasDrained ? handler.getContainer() : item;
-    }
-
-    private void setUserProgress(UUID uuid, int[] progress) {
-        userProgress.put(uuid, progress);
-    }
-
-    public int[] getUsersProgress(UUID uuid) {
-        int[] progress = userProgress.get(uuid);
-        return progress == null || progress.length != requiredFluids.size() ? new int[requiredFluids.size()] : progress;
-    }
-
-    private List<Tuple<UUID, int[]>> getBulkProgress(@Nonnull List<UUID> uuids) {
-        if (uuids.size() <= 0) return Collections.emptyList();
-        List<Tuple<UUID, int[]>> list = new ArrayList<>();
-        uuids.forEach((key) -> list.add(new Tuple<>(key, getUsersProgress(key))));
-        return list;
-    }
-
-    private void setBulkProgress(@Nonnull List<Tuple<UUID, int[]>> list) {
-        list.forEach((entry) -> setUserProgress(entry.getFirst(), entry.getSecond()));
     }
 
     @Override

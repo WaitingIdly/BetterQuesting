@@ -5,6 +5,7 @@ import betterquesting.api.questing.party.IParty;
 import betterquesting.api2.cache.CapabilityProviderQuestCache;
 import betterquesting.api2.cache.QuestCache;
 import betterquesting.api2.storage.DBEntry;
+import betterquesting.questing.party.PartyInventory;
 import betterquesting.questing.party.PartyManager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
@@ -23,6 +24,8 @@ public class ParticipantInfo {
     public final List<UUID> ACTIVE_UUIDS;
 
     public final DBEntry<IParty> PARTY_INSTANCE;
+
+    private PartyInventory inventory;
 
     public ParticipantInfo(@Nonnull EntityPlayer player) {
         this.PLAYER = player;
@@ -76,15 +79,29 @@ public class ParticipantInfo {
     @Nonnull
     public int[] getSharedQuests() // Returns an array of all quests which one or more participants have unlocked
     {
-        TreeSet<Integer> active = new TreeSet<>();
-        ACTIVE_PLAYERS.forEach((p) -> {
-            QuestCache qc = p.getCapability(CapabilityProviderQuestCache.CAP_QUEST_CACHE, null);
-            if (qc != null) for (int value : qc.getActiveQuests()) active.add(value);
-        });
-
-        int[] shared = new int[active.size()];
-        int i = 0;
-        for (int value : active) shared[i++] = value;
-        return shared;
+        List<int[]> playerQuestLists = new ArrayList<>(ACTIVE_PLAYERS.size());
+        for (var player : ACTIVE_PLAYERS) {
+            QuestCache qc = player.getCapability(CapabilityProviderQuestCache.CAP_QUEST_CACHE, null);
+            if (qc != null) {
+                playerQuestLists.add(qc.getActiveQuests());
+            }
+        }
+        if (playerQuestLists.isEmpty()) {
+            return new int[0];
+        }
+        if (playerQuestLists.size() == 1) {
+            // No need to merge
+            return playerQuestLists.get(0);
+        }
+        PartyQuestMerger merger = new PartyQuestMerger(playerQuestLists);
+        return merger.getSharedQuests();
     }
+
+    public PartyInventory getPartyInventory() {
+        if (inventory == null) {
+            inventory = new PartyInventory(PLAYER, ACTIVE_PLAYERS);
+        }
+        return inventory;
+    }
+
 }
