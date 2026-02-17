@@ -33,15 +33,15 @@ public class QuestCommandComplete extends QuestCommandBase {
     @Override
     public List<String> autoComplete(MinecraftServer server, ICommandSender sender, String[] args) {
         if (args.length == 2) {
-            List<String> list = new ArrayList<>();
-            for (DBEntry<IQuest> i : QuestDatabase.INSTANCE.getEntries()) {
-                list.add("" + i.getID());
-            }
+            List<String> list = new ArrayList<>(1 + QuestDatabase.INSTANCE.getEntries().size());
+            list.add("all");
+            QuestDatabase.INSTANCE.getEntries().stream().mapToInt(DBEntry::getID).mapToObj(Integer::toString).forEach(list::add);
+            list.removeIf(x -> !x.startsWith(args[1]));
             return list;
-        } else if (args.length == 3) {
+        }
+        if (args.length == 3) {
             return CommandBase.getListOfStringsMatchingLastWord(args, NameCache.INSTANCE.getAllNames());
         }
-
         return Collections.emptyList();
     }
 

@@ -82,7 +82,10 @@ public class QuestCommandShow extends QuestCommandBase {
 
     @Override
     public List<String> autoComplete(MinecraftServer server, ICommandSender sender, String[] args) {
-        return args.length == 2 ? QuestDatabase.INSTANCE.getEntries().stream().map(DBEntry::getID).map(Object::toString).collect(Collectors.toList()) : Collections.emptyList();
+        if (args.length == 2) {
+            return QuestDatabase.INSTANCE.getEntries().stream().mapToInt(DBEntry::getID).mapToObj(Integer::toString).filter(x -> x.startsWith(args[1])).collect(Collectors.toList());
+        }
+        return Collections.emptyList();
     }
 
     @Override

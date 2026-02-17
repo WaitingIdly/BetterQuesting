@@ -17,8 +17,10 @@ import net.minecraftforge.server.permission.DefaultPermissionLevel;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class QuestCommandCheckCompletion extends QuestCommandBase {
 
@@ -49,17 +51,13 @@ public class QuestCommandCheckCompletion extends QuestCommandBase {
 
     @Override
     public List<String> autoComplete(MinecraftServer server, ICommandSender sender, @Nonnull String[] args) {
-        ArrayList<String> list = new ArrayList<>();
-
         if (args.length == 2) {
             return CommandBase.getListOfStringsMatchingLastWord(args, NameCache.INSTANCE.getAllNames().toArray(new String[0]));
-        } else if (args.length == 3) {
-            for (DBEntry<IQuest> i : QuestDatabase.INSTANCE.getEntries()) {
-                list.add(Integer.toString(i.getID()));
-            }
         }
-
-        return list;
+        if (args.length == 3) {
+            return QuestDatabase.INSTANCE.getEntries().stream().mapToInt(DBEntry::getID).mapToObj(Integer::toString).filter(x -> x.startsWith(args[2])).collect(Collectors.toList());
+        }
+        return Collections.emptyList();
     }
 
     @Override
