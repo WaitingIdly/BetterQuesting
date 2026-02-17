@@ -26,7 +26,7 @@ public class QuestCommandCheckCompletion extends QuestCommandBase {
 
     @Override
     public String getUsageSuffix() {
-        return "<username|uuid> <quest_id>";
+        return "<quest_id> <username|uuid>";
     }
 
     @Override
@@ -52,10 +52,10 @@ public class QuestCommandCheckCompletion extends QuestCommandBase {
     @Override
     public List<String> autoComplete(MinecraftServer server, ICommandSender sender, @Nonnull String[] args) {
         if (args.length == 2) {
-            return CommandBase.getListOfStringsMatchingLastWord(args, NameCache.INSTANCE.getAllNames().toArray(new String[0]));
+            return QuestDatabase.INSTANCE.getEntries().stream().mapToInt(DBEntry::getID).mapToObj(Integer::toString).filter(x -> x.startsWith(args[1])).collect(Collectors.toList());
         }
-        if (args.length == 3) {
-            return QuestDatabase.INSTANCE.getEntries().stream().mapToInt(DBEntry::getID).mapToObj(Integer::toString).filter(x -> x.startsWith(args[2])).collect(Collectors.toList());
+        if (args.length == 1) {
+            return CommandBase.getListOfStringsMatchingLastWord(args, NameCache.INSTANCE.getAllNames().toArray(new String[0]));
         }
         return Collections.emptyList();
     }
@@ -69,7 +69,7 @@ public class QuestCommandCheckCompletion extends QuestCommandBase {
     public void runCommand(MinecraftServer server, CommandBase command, ICommandSender sender, @Nonnull String[] args) throws CommandException {
         UUID uuid;
 
-        uuid = this.findPlayerID(server, sender, args[1]);
+        uuid = this.findPlayerID(server, sender, args[2]);
 
         if (uuid == null) {
             sender.sendMessage(new TextComponentTranslation("betterquesting.cmd.check.no_player_match").setStyle(new Style().setColor(TextFormatting.RED)));
@@ -78,7 +78,7 @@ public class QuestCommandCheckCompletion extends QuestCommandBase {
 
         String pName = NameCache.INSTANCE.getName(uuid);
 
-        int id = Integer.parseInt(args[2].trim());
+        int id = Integer.parseInt(args[1].trim());
         IQuest quest = QuestDatabase.INSTANCE.getValue(id);
         if (quest == null) {
             sender.sendMessage(new TextComponentTranslation("betterquesting.cmd.check.no_id_match").setStyle(new Style().setColor(TextFormatting.RED)));
@@ -89,6 +89,6 @@ public class QuestCommandCheckCompletion extends QuestCommandBase {
 
     @Override
     public boolean isArgUsername(String[] args, int index) {
-        return index == 1;
+        return index == 2;
     }
 }
