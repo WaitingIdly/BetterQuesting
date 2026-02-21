@@ -36,6 +36,7 @@ public class CanvasScrolling implements IGuiCanvas {
 
     private boolean isDragging = false; // Mouse buttons held for dragging
     private boolean hasDragged = false; // Dragging used. Don't fire onMouseRelease
+    protected boolean movementViaMouse = false;
     protected int scrollSpeed = (int) (12 * BQ_Settings.scrollMultiplier);
 
     // Starting drag scroll values
@@ -194,7 +195,7 @@ public class CanvasScrolling implements IGuiCanvas {
 
         if (lsz != zs) {
             boolean zoomIn = lsz < zs;
-            if ((zoomIn && !BQ_Settings.zoomInToCursor) || (!zoomIn && !BQ_Settings.zoomOutToCursor)) {
+            if ((zoomIn && !(BQ_Settings.zoomInToCursor && movementViaMouse)) || (!zoomIn && !(BQ_Settings.zoomOutToCursor && movementViaMouse))) {
                 if (lsz == 0)
                     return;
 
@@ -337,6 +338,17 @@ public class CanvasScrolling implements IGuiCanvas {
 
     @Override
     public boolean onMouseScroll(int mx, int my, int scroll) {
+        movementViaMouse = true;
+        return scroll(mx, my, scroll);
+    }
+
+    public boolean zoom(boolean zoomIn) {
+        int midX = transform.getX() + (transform.getWidth() / 2);
+        int midY = transform.getY() + (transform.getHeight() / 2);
+        return scroll(midX, midY, zoomIn ? -1 : 1);
+    }
+
+    protected boolean scroll(int mx, int my, int scroll) {
         if (scroll == 0 || !transform.contains(mx, my)) return false;
 
         float zs = zoomScale.readValue();
@@ -411,12 +423,6 @@ public class CanvasScrolling implements IGuiCanvas {
                 break;
             }
         }
-
-        /*if(!used && c == 'c')
-        {
-            setScrollX(0);
-            setScrollY(0);
-        }*/
 
         return used;
     }

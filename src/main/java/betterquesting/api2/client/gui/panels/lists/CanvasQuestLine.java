@@ -19,10 +19,12 @@ import betterquesting.api2.client.gui.resources.textures.SimpleTexture;
 import betterquesting.api2.client.gui.themes.presets.PresetColor;
 import betterquesting.api2.client.gui.themes.presets.PresetLine;
 import betterquesting.api2.storage.DBEntry;
+import betterquesting.client.BQ_Keybindings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StringUtils;
+import org.lwjgl.input.Keyboard;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -43,6 +45,12 @@ public class CanvasQuestLine extends CanvasScrolling {
         this.setupAdvanceScroll(true, true, 3000);
         this.enableBlocking(false);
         this.buttonId = buttonId;
+    }
+
+    @Override
+    public void initPanel() {
+        super.initPanel();
+        Keyboard.enableRepeatEvents(true);
     }
 
     public Collection<PanelButtonQuest> getQuestButtons() {
@@ -167,6 +175,39 @@ public class CanvasQuestLine extends CanvasScrolling {
         }
 
         fitToWindow();
+    }
+
+    @Override
+    public boolean onKeyTyped(char c, int keycode) {
+        boolean used = super.onKeyTyped(c, keycode);
+
+        if (!used) {
+            boolean resetView = keycode == BQ_Keybindings.resetView.getKeyCode();
+            boolean zoomIn = keycode == BQ_Keybindings.zoomIn.getKeyCode();
+            boolean zoomOut = keycode == BQ_Keybindings.zoomOut.getKeyCode();
+            boolean scrollUp = keycode == BQ_Keybindings.scrollUp.getKeyCode();
+            boolean scrollRight = keycode == BQ_Keybindings.scrollRight.getKeyCode();
+            boolean scrollDown = keycode == BQ_Keybindings.scrollDown.getKeyCode();
+            boolean scrollLeft = keycode == BQ_Keybindings.scrollLeft.getKeyCode();
+
+            if (resetView) {
+                fitToWindow();
+                used = true;
+            } else if (scrollUp || scrollDown) {
+                this.setScrollY(getScrollY() + (scrollUp ? -10 : 10));
+                this.updatePanelScroll();
+                used = true;
+            } else if (scrollRight || scrollLeft) {
+                this.setScrollX(getScrollX() + (scrollLeft ? -10 : 10));
+                this.updatePanelScroll();
+                used = true;
+            } else if (zoomIn || zoomOut) {
+                movementViaMouse = false;
+                used = zoom(zoomIn);
+            }
+        }
+
+        return used;
     }
 
     public void fitToWindow() {
