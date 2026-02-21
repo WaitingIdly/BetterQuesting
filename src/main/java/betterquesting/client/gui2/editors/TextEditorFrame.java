@@ -59,6 +59,7 @@ import io.netty.util.collection.IntObjectMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
+import org.apache.commons.lang3.SystemUtils;
 
 public class TextEditorFrame extends JFrame {
 
@@ -375,7 +376,7 @@ public class TextEditorFrame extends JFrame {
                 putValue(MNEMONIC_KEY, (int) 'U');
                 putValue(SHORT_DESCRIPTION, "Undo");
                 putValue(LONG_DESCRIPTION, "Undo");
-                putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke('Z', InputEvent.CTRL_DOWN_MASK));
+                putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke('Z', SystemUtils.IS_OS_MAC ? InputEvent.META_DOWN_MASK : InputEvent.CTRL_DOWN_MASK));
             }
 
             public void actionPerformed(ActionEvent e) {
@@ -393,7 +394,7 @@ public class TextEditorFrame extends JFrame {
                 putValue(MNEMONIC_KEY, (int) 'R');
                 putValue(SHORT_DESCRIPTION, "Redo");
                 putValue(LONG_DESCRIPTION, "Redo");
-                putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke('Y', InputEvent.CTRL_DOWN_MASK));
+                putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke('Y', SystemUtils.IS_OS_MAC ? InputEvent.META_DOWN_MASK : InputEvent.CTRL_DOWN_MASK));
             }
 
             public void actionPerformed(ActionEvent e) {
