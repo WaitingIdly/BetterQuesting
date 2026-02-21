@@ -58,6 +58,8 @@ betterquesting.btn.party_share_lives=Share Lives
 betterquesting.btn.party_share_loot=Single Reward
 betterquesting.btn.icon=Icon
 betterquesting.btn.claim_all=Claim All
+betterquesting.btn.zoom_in=Zoom In
+betterquesting.btn.zoom_out=Zoom Out
 betterquesting.btn.zoom_fit=Zoom to Fit
 betterquesting.btn.lock_tray=Lock Tray
 betterquesting.btn.visible_hidden=Always hide dependency line
@@ -130,6 +132,14 @@ betterquesting.msg.copy_quest_failed=§cCould not copy §b%s§r§c to clipboard!
 
 key.betterquesting.quests=Open Quests
 key.betterquesting.back=Return to Previous Page
+key.betterquesting.resetView=Zoom to Fit
+key.betterquesting.zoomIn=Zoom in
+key.betterquesting.zoomOut=Zoom Out
+key.betterquesting.scrollUp=Scroll up
+key.betterquesting.scrollRight=Scroll right
+key.betterquesting.scrollDown=Scroll down
+key.betterquesting.scrollLeft=Scroll left
+
 key.betterquesting.party=Party Manager
 key.betterquesting.themes=Change Theme
 
