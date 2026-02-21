@@ -100,17 +100,30 @@ public class EventHandler {
     @SubscribeEvent
     @SideOnly(Side.CLIENT)
     public void onKey(InputEvent.KeyInputEvent event) {
-        Minecraft mc = Minecraft.getMinecraft();
+        if (BQ_Keybindings.openQuests.isPressed()) {
+            openQuestbook();
+        }
+    }
 
-        if (mc.currentScreen == null && BQ_Keybindings.openQuests.isPressed()) {
-            if (BQ_Settings.useBookmark && GuiHome.bookmark != null) {
-                mc.displayGuiScreen(GuiHome.bookmark);
-            } else {
-                GuiScreen guiToDisplay = ThemeRegistry.INSTANCE.getGui(PresetGUIs.HOME, GArgsNone.NONE);
-                if (BQ_Settings.useBookmark && BQ_Settings.skipHome)
-                    guiToDisplay = new GuiQuestLines(guiToDisplay);
-                mc.displayGuiScreen(guiToDisplay);
+    @SubscribeEvent
+    @SideOnly(Side.CLIENT)
+    public void onMouse(InputEvent.MouseInputEvent event) {
+        if (BQ_Keybindings.openQuests.isPressed()) {
+            openQuestbook();
+        }
+    }
+
+    private static void openQuestbook() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.currentScreen != null) return;
+        if (BQ_Settings.useBookmark && GuiHome.bookmark != null) {
+            mc.displayGuiScreen(GuiHome.bookmark);
+        } else {
+            GuiScreen guiToDisplay = ThemeRegistry.INSTANCE.getGui(PresetGUIs.HOME, GArgsNone.NONE);
+            if (BQ_Settings.useBookmark && BQ_Settings.skipHome) {
+                guiToDisplay = new GuiQuestLines(guiToDisplay);
             }
+            mc.displayGuiScreen(guiToDisplay);
         }
     }
 
