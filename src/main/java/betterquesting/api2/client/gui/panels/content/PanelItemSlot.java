@@ -57,7 +57,12 @@ public class PanelItemSlot extends PanelButtonStorage<BigItemStack> {
         if (value != null) {
             Minecraft mc = Minecraft.getMinecraft();
             this.setIcon(oreDict || value.getBaseStack().getItemDamage() == OreDictionary.WILDCARD_VALUE ? new OreDictTexture(1F, value, showCount, true) : new ItemTexture(value, showCount, true), 1);
-            this.setTooltip(value.getBaseStack().getTooltip(mc.player, mc.gameSettings.advancedItemTooltips ? TooltipFlags.ADVANCED : TooltipFlags.NORMAL));
+            try {
+                this.setTooltip(value.getBaseStack().getTooltip(mc.player, mc.gameSettings.advancedItemTooltips ? TooltipFlags.ADVANCED : TooltipFlags.NORMAL));
+            } catch (ArrayIndexOutOfBoundsException e) {
+                this.setTooltip(null);
+                BetterQuesting.logger.warn("Failed to get tooltip for item {} due to an ArrayIndexOutOfBoundsException. This is likely caused by the mod registering this item failing to handle wildcard metadata correctly.", value.getBaseStack());
+            }
         } else {
             this.setIcon(null);
             this.setTooltip(null);
