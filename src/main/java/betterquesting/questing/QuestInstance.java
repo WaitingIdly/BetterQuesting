@@ -33,8 +33,11 @@ import org.apache.logging.log4j.Level;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 public class QuestInstance implements IQuest {
     private final TaskStorage tasks = new TaskStorage();
@@ -121,7 +124,7 @@ public class QuestInstance implements IQuest {
             return;
         }
 
-        if (isUnlocked(playerID) || QuestSettings.INSTANCE.getProperty(NativeProps.EDIT_MODE)) {
+        if (isUnlocked(playerID) || QuestSettings.INSTANCE.canUserEdit(player)) {
             int done = 0;
             boolean update = false;
 
@@ -143,7 +146,7 @@ public class QuestInstance implements IQuest {
             // Note: Tasks can mark the quest dirty themselves if progress changed but hasn't fully completed.
             if (tasks.size() <= 0 || qInfo.getProperty(NativeProps.LOGIC_TASK).getResult(done, tasks.size())) {
                 // State won't be auto updated in edit mode so we force change it here and mark it for re-sync
-                if (QuestSettings.INSTANCE.getProperty(NativeProps.EDIT_MODE))
+                if (QuestSettings.INSTANCE.canUserEdit(player))
                     setComplete(playerID, System.currentTimeMillis());
                 qc.markQuestDirty(questID);
             } else if (update && qInfo.getProperty(NativeProps.SIMULTANEOUS)) {

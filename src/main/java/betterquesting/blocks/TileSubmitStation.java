@@ -1,6 +1,5 @@
 package betterquesting.blocks;
 
-import betterquesting.api.properties.NativeProps;
 import betterquesting.api.questing.IQuest;
 import betterquesting.api.questing.tasks.IFluidTask;
 import betterquesting.api.questing.tasks.IItemTask;
@@ -228,15 +227,16 @@ public class TileSubmitStation extends TileEntity implements IFluidHandler, ISid
 
     @Override
     public void update() {
-        if (world.isRemote || !isSetup() || QuestSettings.INSTANCE.getProperty(NativeProps.EDIT_MODE)) return;
+        if (world.isRemote || !isSetup() || owner != null) return;
+        MinecraftServer server = world.getMinecraftServer();
+        EntityPlayerMP player = server == null ? null : server.getPlayerList().getPlayerByUUID(owner);
+        if (QuestSettings.INSTANCE.canUserEdit(player)) return;
 
         long wtt = world.getTotalWorldTime();
-        if (wtt % 5 == 0 && owner != null) {
+        if (wtt % 5 == 0) {
             if (wtt % 20 == 0) qCached = null; // Reset and lookup quest again once every second
             DBEntry<IQuest> q = getQuest();
             IItemTask t = getItemTask();
-            MinecraftServer server = world.getMinecraftServer();
-            EntityPlayerMP player = server == null ? null : server.getPlayerList().getPlayerByUUID(owner);
             QuestCache qc = player == null ? null : player.getCapability(CapabilityProviderQuestCache.CAP_QUEST_CACHE, null);
 
             // Check quest & task is present. Check input is populated and output is clear.

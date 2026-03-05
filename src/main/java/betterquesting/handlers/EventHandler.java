@@ -50,7 +50,10 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.integrated.IntegratedServer;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.text.*;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.event.ClickEvent;
 import net.minecraft.util.text.event.HoverEvent;
 import net.minecraft.world.GameType;
@@ -174,12 +177,11 @@ public class EventHandler {
     @SubscribeEvent
     public void onLivingUpdate(LivingUpdateEvent event) {
         if (event.getEntityLiving().world.isRemote) return;
-        if (!(event.getEntityLiving() instanceof EntityPlayerMP)) return;
-        if (event.getEntityLiving().ticksExisted % 20 != 0) return; // Only triggers once per second
+        if (!(event.getEntityLiving() instanceof EntityPlayerMP player)) return;
+        if (player.ticksExisted % 20 != 0) return; // Only triggers once per second
 
-        EntityPlayerMP player = (EntityPlayerMP) event.getEntityLiving();
         betterquesting.api2.cache.QuestCache qc = player.getCapability(CapabilityProviderQuestCache.CAP_QUEST_CACHE, null);
-        boolean editMode = QuestSettings.INSTANCE.getProperty(NativeProps.EDIT_MODE);
+        boolean editMode = QuestSettings.INSTANCE.canUserEdit(player);
 
         if (qc == null) return;
 
@@ -655,10 +657,9 @@ public class EventHandler {
 
     @SubscribeEvent
     public void onEntityLiving(LivingUpdateEvent event) {
-        if (!(event.getEntityLiving() instanceof EntityPlayer) || event.getEntityLiving().world.isRemote || event.getEntityLiving().ticksExisted % 20 != 0 || QuestingAPI.getAPI(ApiReference.SETTINGS).getProperty(NativeProps.EDIT_MODE))
+        if (!(event.getEntityLiving() instanceof EntityPlayer player) || player.world.isRemote || player.ticksExisted % 20 != 0 || QuestingAPI.getAPI(ApiReference.SETTINGS).canUserEdit(player))
             return;
 
-        EntityPlayer player = (EntityPlayer) event.getEntityLiving();
         ParticipantInfo pInfo = new ParticipantInfo(player);
 
         List<DBEntry<IQuest>> actQuest = QuestingAPI.getAPI(ApiReference.QUEST_DB).bulkLookupShared(pInfo);
