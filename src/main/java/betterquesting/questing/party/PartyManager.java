@@ -1,8 +1,6 @@
 package betterquesting.questing.party;
 
 import betterquesting.api.enums.EnumPartyStatus;
-import betterquesting.api.properties.IPropertyListener;
-import betterquesting.api.properties.IPropertyType;
 import betterquesting.api.properties.NativeProps;
 import betterquesting.api.questing.party.IParty;
 import betterquesting.api.questing.party.IPartyDatabase;
@@ -11,26 +9,25 @@ import betterquesting.api2.storage.SimpleDatabase;
 import betterquesting.storage.QuestSettings;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.relauncher.Side;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class PartyManager extends SimpleDatabase<IParty> implements IPartyDatabase, IPropertyListener<Boolean> {
+public class PartyManager extends SimpleDatabase<IParty> implements IPartyDatabase {
     public static final PartyManager INSTANCE;
 
     static {
         INSTANCE = new PartyManager();
-        NativeProps.PARTY_ENABLE.addListener(INSTANCE);
+        QuestSettings.INSTANCE.addPropertyListener(NativeProps.PARTY_ENABLE, PartyManager.INSTANCE.partyEnabled::set);
     }
 
     private final HashMap<UUID, Integer> partyCache = new HashMap<>();
     // Cache PARTY_ENABLED prop due to frequent checks when creating ParticipantInfo in tick handler.
-    private boolean partyEnabled;
+    private final AtomicBoolean partyEnabled = new AtomicBoolean(false);
 
     @Override
     public synchronized IParty createNew(int id) {
@@ -42,7 +39,7 @@ public class PartyManager extends SimpleDatabase<IParty> implements IPartyDataba
     @Nullable
     @Override
     public synchronized DBEntry<IParty> getParty(@Nonnull UUID uuid) {
-        if (!partyEnabled)
+        if (!partyEnabled.get())
             return null; // We're merely preventing access. Not erasing data
 
         Integer cachedID = partyCache.get(uuid);
@@ -106,12 +103,5 @@ public class PartyManager extends SimpleDatabase<IParty> implements IPartyDataba
     public synchronized void reset() {
         super.reset();
         partyCache.clear();
-    }
-
-    @Override
-    public void propertyChanged(IPropertyType<Boolean> prop, Boolean newValue) {
-        if (prop == NativeProps.PARTY_ENABLE && FMLCommonHandler.instance().getEffectiveSide() == Side.SERVER) {
-            partyEnabled = newValue;
-        }
     }
 }
