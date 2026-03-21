@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 
 public class GuiQuestSearch extends GuiScreenCanvas {
 
+    private static String priorSearchText = null;
     private PanelTextField<String> searchBox;
 
     public GuiQuestSearch(GuiScreen parent) {
@@ -59,12 +60,19 @@ public class GuiQuestSearch extends GuiScreenCanvas {
         searchBox = new PanelTextField<>(new GuiTransform(GuiAlign.TOP_EDGE, new GuiPadding(0, 16, 8, -32), 0), "", FieldFilterString.INSTANCE);
         searchBox.setWatermark("Search...");
         searchBox.lockFocus(true);
+        searchBox.enableClearingOnRightClick(true);
         cvInner.addPanel(searchBox);
 
         CanvasQuestSearch canvasQuestSearch = createSearchCanvas();
         cvInner.addPanel(canvasQuestSearch);
 
-        searchBox.setCallback(canvasQuestSearch::setSearchFilter);
+        searchBox.setCallback(text -> {
+            GuiQuestSearch.priorSearchText = text;
+            canvasQuestSearch.setSearchFilter(text);
+        });
+        if (priorSearchText != null) {
+            searchBox.writeText(priorSearchText);
+        }
 
         PanelVScrollBar scDb = new PanelVScrollBar(new GuiTransform(GuiAlign.RIGHT_EDGE, new GuiPadding(-8, 32, 0, 24), 0));
         cvInner.addPanel(scDb);
@@ -76,7 +84,7 @@ public class GuiQuestSearch extends GuiScreenCanvas {
         CanvasQuestSearch canvasQuestSearch = new CanvasQuestSearch(new GuiTransform(GuiAlign.FULL_BOX, new GuiPadding(0, 32, 8, 24), 0), mc.player);
         canvasQuestSearch.setQuestOpenCallback(questSearchEntry -> {
             acceptCallback(questSearchEntry);
-            GuiHome.bookmark = new GuiQuest(parent, questSearchEntry.getQuest().getID());
+            GuiHome.bookmark = new GuiQuest(this, questSearchEntry.getQuest().getID());
             mc.displayGuiScreen(GuiHome.bookmark);
         });
         canvasQuestSearch.setQuestHighlightCallback(questSearchEntry -> {
