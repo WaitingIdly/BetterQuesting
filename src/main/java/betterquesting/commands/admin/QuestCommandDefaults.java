@@ -35,6 +35,7 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.server.permission.DefaultPermissionLevel;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,7 +47,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class QuestCommandDefaults extends QuestCommandBase {
@@ -269,9 +269,6 @@ public class QuestCommandDefaults extends QuestCommandBase {
             return;
         }
 
-        Function<File, NBTTagCompound> readNbt =
-                file -> NBTConverter.JSONtoNBT_Object(JsonHelper.ReadFromFile(file), new NBTTagCompound(), true);
-
         boolean editMode = QuestSettings.INSTANCE.getProperty(NativeProps.EDIT_MODE);
         boolean hardMode = QuestSettings.INSTANCE.getProperty(NativeProps.HARDCORE);
         NBTTagList jsonP = QuestDatabase.INSTANCE.writeProgressToNBT(new NBTTagList(), null);
@@ -282,17 +279,15 @@ public class QuestCommandDefaults extends QuestCommandBase {
             sendChatMessage(sender, "betterquesting.cmd.error");
             return;
         }
-        QuestSettings.INSTANCE.readFromNBT(readNbt.apply(settingsFile));
+        QuestSettings.INSTANCE.readFromNBT(readNBT(settingsFile));
         File questLineDir = new File(dataDir, QUEST_LINE_DIR);
         NBTTagList questLineDatabase = new NBTTagList();
         List<File> sortedQuestLineFiles = new ArrayList<>();
         try (Stream<Path> paths = Files.walk(questLineDir.toPath())) {
-            paths.filter(Files::isRegularFile).forEach(
-                    path -> {
-                        File questLineFile = path.toFile();
-                        sortedQuestLineFiles.add(questLineFile);
-                    }
-            );
+            paths.filter(Files::isRegularFile)
+                    .map(Path::toFile)
+                    .filter(x -> FilenameUtils.isExtension(x.getName(), "json"))
+                    .forEach(sortedQuestLineFiles::add);
         } catch (IOException e) {
             QuestingAPI.getLogger().log(Level.ERROR, "Failed to traverse directory\n" + questLineDir, e);
             sendChatMessage(sender, "betterquesting.cmd.error");
@@ -308,7 +303,7 @@ public class QuestCommandDefaults extends QuestCommandBase {
         }
 
         sortedQuestLineFiles.stream()
-                .map(readNbt)
+                .map(QuestCommandDefaults::readNBT)
                 .forEach(questLineDatabase::appendTag);
 
         QuestLineDatabase.INSTANCE.readFromNBT(questLineDatabase, false);
@@ -316,25 +311,26 @@ public class QuestCommandDefaults extends QuestCommandBase {
 
         File questDir = new File(dataDir, QUEST_DIR);
         try (Stream<Path> paths = Files.walk(questDir.toPath())) {
-            paths.filter(Files::isRegularFile).forEach(
-                    path -> {
-                        File questFile = path.toFile();
-                        NBTTagCompound questTag = readNbt.apply(questFile);
-                        int questId = questTag.hasKey("questID", Constants.NBT.TAG_ANY_NUMERIC) ? questTag.getInteger("questID") : -1;
+            paths.filter(Files::isRegularFile)
+                    .map(Path::toFile)
+                    .filter(x -> FilenameUtils.isExtension(x.getName(), "json"))
+                    .forEach(questFile -> {
+                                NBTTagCompound questTag = readNBT(questFile);
+                                int questId = questTag.hasKey("questID", Constants.NBT.TAG_ANY_NUMERIC) ? questTag.getInteger("questID") : -1;
 
-                        if (questId < 0) {
-                            questId = Integer.parseInt(questFile.getName().replaceAll("[^0-9]+", ""));
-                        }
+                                if (questId < 0) {
+                                    questId = Integer.parseInt(questFile.getName().replaceAll("[^0-9]+", ""));
+                                }
 
-                        if (questId < 0) {
-                            return;
-                        }
+                                if (questId < 0) {
+                                    return;
+                                }
 
-                        IQuest quest = new QuestInstance();
-                        quest.readFromNBT(questTag);
-                        QuestDatabase.INSTANCE.add(questId, quest);
-                    }
-            );
+                                IQuest quest = new QuestInstance();
+                                quest.readFromNBT(questTag);
+                                QuestDatabase.INSTANCE.add(questId, quest);
+                            }
+                    );
         } catch (IOException e) {
             QuestingAPI.getLogger().log(Level.ERROR, "Failed to traverse directory\n" + questDir, e);
             sendChatMessage(sender, "betterquesting.cmd.error");
@@ -463,6 +459,10 @@ public class QuestCommandDefaults extends QuestCommandBase {
 
     private static String removeChatFormatting(String string) {
         return string.replaceAll("§[0-9a-fk-or]", "");
+    }
+
+    private static NBTTagCompound readNBT(File file) {
+        return NBTConverter.JSONtoNBT_Object(JsonHelper.ReadFromFile(file), new NBTTagCompound(), true);
     }
 
     /** Helper method that handles having null sender. */

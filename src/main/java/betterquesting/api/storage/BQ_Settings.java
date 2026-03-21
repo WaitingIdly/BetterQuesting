@@ -21,6 +21,7 @@ public class BQ_Settings {
     public static String curTheme = new ResourceLocation(ModReference.MODID, "light").toString();
     public static int guiWidth = -1;
     public static int guiHeight = -1;
+    public static boolean separateDescriptionEditor = false;
     public static boolean questNotices = true;
 
     public static float scrollMultiplier = 0.1F;
@@ -34,6 +35,7 @@ public class BQ_Settings {
     public static boolean claimAllConfirmation = true;
     public static boolean lockTray = true;
     public static boolean viewMode = false;
+    public static boolean limitBack = false;
     public static String defaultVisibility = "NORMAL";
 
     public static boolean spawnWithQuestBook = true;

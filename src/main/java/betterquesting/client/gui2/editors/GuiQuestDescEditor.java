@@ -2,13 +2,15 @@ package betterquesting.client.gui2.editors;
 
 import javax.annotation.Nullable;
 
+import betterquesting.api.properties.IPropertyContainer;
+import betterquesting.api.storage.BQ_Settings;
+import net.minecraft.client.gui.GuiScreen;
 import org.lwjgl.input.Keyboard;
 
 import com.google.common.collect.Lists;
 
 import betterquesting.api.client.gui.misc.IVolatileScreen;
 import betterquesting.api.properties.NativeProps;
-import betterquesting.api.questing.IQuest;
 import betterquesting.api2.client.gui.GuiScreenCanvas;
 import betterquesting.api2.client.gui.controls.IPanelButton;
 import betterquesting.api2.client.gui.controls.PanelButton;
@@ -32,28 +34,28 @@ import betterquesting.api2.client.gui.themes.presets.PresetTexture;
 import betterquesting.api2.utils.QuestTranslation;
 import net.minecraft.util.text.TextFormatting;
 
-public class GuiQuestDescEditor extends GuiScreenCanvas implements IPEventListener, IVolatileScreen {
+public class GuiQuestDescEditor<T extends IPropertyContainer> extends GuiScreenCanvas implements IPEventListener, IVolatileScreen {
 
-    private static final boolean FORCE_OPEN_WINDOW = true;
-
-    private final int questID;
-    private final IQuest quest;
+    private final T container;
+    private final String title;
     private final String beforeName;
     private final String beforeDesc;
+    public final Runnable runnable;
     private String name; //TODO: Add this to GUI
     private PanelTextField<String> description;
     private PanelButton close;
     private @Nullable TextEditorFrame window;
 
-    public GuiQuestDescEditor(GuiQuestEditor parent, int questID, IQuest quest) {
+    public GuiQuestDescEditor(GuiScreen parent, T container, String title, Runnable runnable) {
         super(parent);
-        this.questID = questID;
-        this.quest = quest;
-        beforeName = quest.getProperty(NativeProps.NAME);
-        beforeDesc = quest.getProperty(NativeProps.DESC);
-        TextEditorFrame window = TextEditorFrame.get(questID);
-        if (FORCE_OPEN_WINDOW && window == null) {
-            window = TextEditorFrame.getOrCreate(questID, beforeName, beforeName, beforeDesc);
+        this.container = container;
+        this.title = title;
+        this.runnable = runnable;
+        beforeName = container.getProperty(NativeProps.NAME);
+        beforeDesc = container.getProperty(NativeProps.DESC);
+        TextEditorFrame window = TextEditorFrame.get(container);
+        if (BQ_Settings.separateDescriptionEditor && window == null) {
+            window = TextEditorFrame.getOrCreate(container, runnable, beforeName, beforeName, beforeDesc);
         }
         if (window != null) {
             this.window = window;
@@ -74,7 +76,7 @@ public class GuiQuestDescEditor extends GuiScreenCanvas implements IPEventListen
      */
     public void showWindow() {
         if (window == null)
-            window = TextEditorFrame.getOrCreate(questID, beforeName, name, description.getRawText());
+            window = TextEditorFrame.getOrCreate(container, runnable, beforeName, name, description.getRawText());
         window.setGui(this);
         window.toFront();
         window.requestFocus();
@@ -107,9 +109,10 @@ public class GuiQuestDescEditor extends GuiScreenCanvas implements IPEventListen
      * Save the name and the desc, and close the screen and the window.
      */
     public void saveAndClose() {
-        quest.setProperty(NativeProps.NAME, name.trim());
-        quest.setProperty(NativeProps.DESC, description.getRawText());
-        GuiQuestEditor.sendChanges(questID);
+        container.setProperty(NativeProps.NAME, name.trim());
+        container.setProperty(NativeProps.DESC, description.getRawText());
+        runnable.run();
+
         removeWindow();
         close();
     }
@@ -184,8 +187,7 @@ public class GuiQuestDescEditor extends GuiScreenCanvas implements IPEventListen
         cvBackground.addPanel(new PanelButton(new GuiTransform(GuiAlign.BOTTOM_LEFT, 0 + 20, -16, 80, 16, 0), 1, QuestTranslation.translate("gui.cancel")));
         cvBackground.addPanel(new PanelButton(new GuiTransform(GuiAlign.BOTTOM_RIGHT, -80 - 20, -16, 80, 16, 0), 2, QuestTranslation.translate("gui.done")));
 
-        PanelTextBox txTitle = new PanelTextBox(new GuiTransform(GuiAlign.TOP_EDGE, new GuiPadding(0, 16, 0, -32), 0),
-                                                QuestTranslation.translate("betterquesting.title.edit_quest")).setAlignment(1);
+        PanelTextBox txTitle = new PanelTextBox(new GuiTransform(GuiAlign.TOP_EDGE, new GuiPadding(0, 16, 0, -32), 0), title).setAlignment(1);
         txTitle.setColor(PresetColor.TEXT_HEADER.getColor());
         cvBackground.addPanel(txTitle);
 

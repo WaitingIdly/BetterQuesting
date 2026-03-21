@@ -1,4 +1,5 @@
 betterquesting.title.quest_lines=Quest Lines
+betterquesting.title.edit_line=Edit Quest Line
 betterquesting.title.edit_line1=Edit Quest Lines
 betterquesting.title.edit_line2=Edit Quest Line - %s
 betterquesting.title.edit_quest=Edit Quest
@@ -68,6 +69,8 @@ betterquesting.btn.share_quest=Share to Chat
 betterquesting.btn.copy_id=Copy Quest ID
 betterquesting.btn.edit_name_desc.just_close=Just Close
 betterquesting.btn.edit_name_desc.open_window=Open Window
+betterquesting.btn.copy.tooltip.main=Click to copy description
+betterquesting.btn.copy.tooltip.shift=Hold shift to copy description without formatting
 
 betterquesting.home.exit=Exit
 betterquesting.home.quests=Quests
@@ -200,6 +203,7 @@ betterquesting.toolbox.tool.set_main.name=Set as Main
 betterquesting.toolbox.tool.set_main.desc=Set or unset the quest as main, which increases the link draw size
 
 betterquesting.cmd.complete=Completed quest %s for %s
+betterquesting.cmd.complete_all=Completed %s quests for %s
 betterquesting.cmd.default.save=Quest database saved as default
 betterquesting.cmd.default.save2=Quest database saved to %s
 betterquesting.cmd.default.load=Reloaded default quest database
