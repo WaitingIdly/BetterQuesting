@@ -26,9 +26,10 @@ public class SceneController {
     public static void onGuiOpened(GuiOpenEvent event) {
         if (event.getGui() instanceof IScene) {
             // TODO: Review the following
-            // Does this need to be cleared if the GUI isn't compatible?
             // Would this interfere with an overlay canvas?
             curScene = (IScene) event.getGui();
+        } else if (event.getGui() == null) {
+            curScene = null;
         }
     }
 }
