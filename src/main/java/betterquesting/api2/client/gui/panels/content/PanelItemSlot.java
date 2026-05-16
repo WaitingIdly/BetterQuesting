@@ -4,6 +4,7 @@ import betterquesting.api.utils.BigItemStack;
 import betterquesting.api2.client.gui.controls.PanelButtonStorage;
 import betterquesting.api2.client.gui.misc.GuiPadding;
 import betterquesting.api2.client.gui.misc.IGuiRect;
+import betterquesting.api2.client.gui.misc.IRenderedStackProvider;
 import betterquesting.api2.client.gui.resources.textures.ColorTexture;
 import betterquesting.api2.client.gui.resources.textures.ItemTexture;
 import betterquesting.api2.client.gui.resources.textures.LayeredTexture;
@@ -42,12 +43,12 @@ public class PanelItemSlot extends PanelButtonStorage<BigItemStack> {
     }
 
     public PanelItemSlot(IGuiRect rect, int id, BigItemStack value, boolean showCount, boolean oreDict) {
-        super(rect, id, "", value);
+        super(rect, id, "", null); // Value will be set by setStoredValue()
         this.showCount = showCount;
         this.oreDict = oreDict;
 
         this.setTextures(PresetTexture.ITEM_FRAME.getTexture(), PresetTexture.ITEM_FRAME.getTexture(), new LayeredTexture(PresetTexture.ITEM_FRAME.getTexture(), new ColorTexture(PresetColor.ITEM_HIGHLIGHT.getColor(), new GuiPadding(1, 1, 1, 1))));
-        this.setStoredValue(value); // Need to run this again because of the instatiation order of showCount
+        this.setStoredValue(value);
     }
 
     @Override
@@ -55,12 +56,9 @@ public class PanelItemSlot extends PanelButtonStorage<BigItemStack> {
         super.setStoredValue(value);
 
         if (value != null) {
-            Minecraft mc = Minecraft.getMinecraft();
             this.setIcon(oreDict || value.getBaseStack().getItemDamage() == OreDictionary.WILDCARD_VALUE ? new OreDictTexture(1F, value, showCount, true) : new ItemTexture(value, showCount, true), 1);
-            this.setTooltip(value.getBaseStack().getTooltip(mc.player, mc.gameSettings.advancedItemTooltips ? TooltipFlags.ADVANCED : TooltipFlags.NORMAL));
         } else {
             this.setIcon(null);
-            this.setTooltip(null);
         }
 
         updateOreStacks();
@@ -78,6 +76,11 @@ public class PanelItemSlot extends PanelButtonStorage<BigItemStack> {
             }
 
             Minecraft mc = Minecraft.getMinecraft();
+            if (mc.currentScreen instanceof IRenderedStackProvider renderedStackProvider) {
+                ItemStack representativeStack = ttStack.getBaseStack().copy();
+                representativeStack.setCount(ttStack.stackSize);
+                renderedStackProvider.setRenderedStack(representativeStack);
+            }
             return ttStack.getBaseStack().getTooltip(mc.player, mc.gameSettings.advancedItemTooltips ? TooltipFlags.ADVANCED : TooltipFlags.NORMAL);
         }
 

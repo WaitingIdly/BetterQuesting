@@ -7,13 +7,24 @@ public class PanelButtonStorage<T> extends PanelButton {
     private T stored = null;
     private ICallback<T> callback = null;
 
+    /**
+     * Creates a panel button that stores a value.
+     * <p>
+     *     Note: If a subclass overrides {@link #setStoredValue(T)}, make sure to call that method during construction
+     *     time after calling this super constructor!
+     * </p>
+     */
     public PanelButtonStorage(IGuiRect rect, int id, String txt, T value) {
         super(rect, id, txt);
-        this.setStoredValue(value);
+        setStoredRaw(value);
+    }
+
+    private void setStoredRaw(T value) {
+        stored = value;
     }
 
     public PanelButtonStorage<T> setStoredValue(T value) {
-        this.stored = value;
+        setStoredRaw(value);
         return this;
     }
 

@@ -2,6 +2,7 @@ package betterquesting.api.utils;
 
 import betterquesting.api2.client.gui.misc.GuiRectangle;
 import betterquesting.api2.client.gui.misc.IGuiRect;
+import betterquesting.api2.client.gui.misc.IRenderedStackProvider;
 import betterquesting.api2.client.gui.resources.colors.GuiColorStatic;
 import betterquesting.api2.client.gui.resources.colors.IGuiColor;
 import betterquesting.api2.client.gui.themes.presets.PresetTexture;
@@ -22,6 +23,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,19 +34,19 @@ import java.util.Locale;
 public class RenderUtils {
     public static final String REGEX_NUMBER = "[^\\.0123456789-]"; // I keep screwing this up so now it's reusable
 
-    public static void RenderItemStack(Minecraft mc, ItemStack stack, int x, int y, String text) {
+    public static void RenderItemStack(Minecraft mc, ItemStack stack, int x, int y, @Nullable String text) {
         RenderItemStack(mc, stack, x, y, text, Color.WHITE.getRGB());
     }
 
-    public static void RenderItemStack(Minecraft mc, ItemStack stack, int x, int y, String text, Color color) {
+    public static void RenderItemStack(Minecraft mc, ItemStack stack, int x, int y, @Nullable String text, Color color) {
         RenderItemStack(mc, stack, x, y, text, color.getRGB());
     }
 
-    public static void RenderItemStack(Minecraft mc, ItemStack stack, int x, int y, String text, int color) {
+    public static void RenderItemStack(Minecraft mc, ItemStack stack, int x, int y, @Nullable String text, int color) {
         RenderItemStack(mc, stack, x, y, 16F, text, color);
     }
 
-    public static void RenderItemStack(Minecraft mc, ItemStack stack, int x, int y, float z, String text, int color) {
+    public static void RenderItemStack(Minecraft mc, ItemStack stack, int x, int y, float z, @Nullable String text, int color) {
         if (stack == null || stack.isEmpty()) {
             return;
         }
@@ -70,7 +72,9 @@ public class RenderUtils {
         try {
             itemRender.renderItemAndEffectIntoGUI(stack, x, y);
 
-            if (stack.getCount() != 1 || text != null) {
+            // Custom ItemStack text
+            if (stack.getCount() != 1 || (text != null && !text.isEmpty())) {
+                String textToDraw = text == null ? String.valueOf(stack.getCount()) : text;
                 GlStateManager.pushMatrix();
 
                 int w = getStringWidth(text, font);
@@ -94,7 +98,7 @@ public class RenderUtils {
                 GlStateManager.disableDepth();
                 GlStateManager.disableBlend();
 
-                font.drawString(text, 0, 0, 16777215, true);
+                font.drawStringWithShadow(textToDraw, 0, 0, 16777215);
 
                 GlStateManager.enableLighting();
                 GlStateManager.enableDepth();
@@ -103,7 +107,7 @@ public class RenderUtils {
                 GlStateManager.popMatrix();
             }
 
-            itemRender.renderItemOverlayIntoGUI(font, stack, x, y, "");
+            itemRender.renderItemOverlayIntoGUI(font, stack, x, y, null); // Pass null to skip rendering default ItemStack text
         } catch (Exception e) {
             BetterQuesting.logger.warn("Unabled to render item " + stack, e);
         }
@@ -663,6 +667,11 @@ public class RenderUtils {
         drawHoveringText(ItemStack.EMPTY, textLines, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font);
     }
 
+    public static void drawHoveringText(IRenderedStackProvider stackProvider, List<String> textLines, int mouseX, int mouseY, int screenWidth, int screenHeight, int maxTextWidth, FontRenderer font) {
+        drawHoveringText(stackProvider.getRenderedStack(), textLines, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font);
+        stackProvider.resetRenderedStack();
+    }
+
     /**
      * Modified version of Forge's tooltip rendering that doesn't adjust Z depth
      */
@@ -766,29 +775,10 @@ public class RenderUtils {
         } else if (tooltipY + tooltipHeight + 4 > screenHeight) {
             tooltipY = screenHeight - tooltipHeight - 4;
         }
-		
-		/*int backgroundColor = 0xF0100010;
-		int borderColorStart = 0x505000FF;
-		int borderColorEnd = (borderColorStart & 0xFEFEFE) >> 1 | borderColorStart & 0xFF000000;
-		
-		RenderTooltipEvent.Color colorEvent = new RenderTooltipEvent.Color(stack, textLines, tooltipX, tooltipY, font, backgroundColor, borderColorStart, borderColorEnd);
-		MinecraftForge.EVENT_BUS.post(colorEvent);
-		backgroundColor = colorEvent.getBackground();
-		borderColorStart = colorEvent.getBorderStart();
-		borderColorEnd = colorEvent.getBorderEnd();
-		
-		GuiUtils.drawGradientRect(0, tooltipX - 3, tooltipY - 4, tooltipX + tooltipTextWidth + 3, tooltipY - 3, backgroundColor, backgroundColor);
-		GuiUtils.drawGradientRect(0, tooltipX - 3, tooltipY + tooltipHeight + 3, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 4, backgroundColor, backgroundColor);
-		GuiUtils.drawGradientRect(0, tooltipX - 3, tooltipY - 3, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3, backgroundColor, backgroundColor);
-		GuiUtils.drawGradientRect(0, tooltipX - 4, tooltipY - 3, tooltipX - 3, tooltipY + tooltipHeight + 3, backgroundColor, backgroundColor);
-		GuiUtils.drawGradientRect(0, tooltipX + tooltipTextWidth + 3, tooltipY - 3, tooltipX + tooltipTextWidth + 4, tooltipY + tooltipHeight + 3, backgroundColor, backgroundColor);
-		GuiUtils.drawGradientRect(0, tooltipX - 3, tooltipY - 3 + 1, tooltipX - 3 + 1, tooltipY + tooltipHeight + 3 - 1, borderColorStart, borderColorEnd);
-		GuiUtils.drawGradientRect(0, tooltipX + tooltipTextWidth + 2, tooltipY - 3 + 1, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3 - 1, borderColorStart, borderColorEnd);
-		GuiUtils.drawGradientRect(0, tooltipX - 3, tooltipY - 3, tooltipX + tooltipTextWidth + 3, tooltipY - 3 + 1, borderColorStart, borderColorStart);
-		GuiUtils.drawGradientRect(0, tooltipX - 3, tooltipY + tooltipHeight + 2, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3, borderColorEnd, borderColorEnd);
 
-		MinecraftForge.EVENT_BUS.post(new RenderTooltipEvent.PostBackground(stack, textLines, tooltipX, tooltipY, font, tooltipTextWidth, tooltipHeight));*/
+        // Doesn't fire RenderTooltipEvent.Color as we draw background/border according to theme
         PresetTexture.TOOLTIP_BG.getTexture().drawTexture(tooltipX - 4, tooltipY - 4, tooltipTextWidth + 8, tooltipHeight + 8, 0F, 1F);
+        MinecraftForge.EVENT_BUS.post(new RenderTooltipEvent.PostBackground(stack, textLines, tooltipX, tooltipY, font, tooltipTextWidth, tooltipHeight));
         int tooltipTop = tooltipY;
 
         GlStateManager.translate(0F, 0F, 0.1F);

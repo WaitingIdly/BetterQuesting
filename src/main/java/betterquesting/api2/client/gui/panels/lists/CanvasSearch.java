@@ -76,9 +76,9 @@ public abstract class CanvasSearch<T, E> extends CanvasScrollingBuffered {
 
         searchTime.stop();
 
-        if (!searching.hasNext())
+        if (!searching.hasNext()) {
             searching = null;
-
+        }
     }
 
     private void updateResults() {
@@ -88,16 +88,21 @@ public abstract class CanvasSearch<T, E> extends CanvasScrollingBuffered {
 
         searchTime.reset().start();
 
-        int count = 0;
-        while (!pendingResults.isEmpty() && searchTime.elapsed(TimeUnit.MILLISECONDS) < 10 && count < 200) {
+        while (!pendingResults.isEmpty() && searchTime.elapsed(TimeUnit.MILLISECONDS) < 10) {
             if (addResult(pendingResults.poll(), searchIdx, resultWidth)) {
                 searchIdx++;
-                count++;
             }
         }
 
         searchTime.stop();
+
+        // Fixed scroll position
+        int currentScrollY = this.getScrollY();
         flushBuffer();
+        if (this.getScrollY() > currentScrollY) {
+            this.setScrollY(currentScrollY);
+            updatePanelScroll();
+        }
     }
 
     public List<T> getResults() {
