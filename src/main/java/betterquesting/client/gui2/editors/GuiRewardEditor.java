@@ -213,16 +213,15 @@ public class GuiRewardEditor extends GuiScreenCanvas implements IPEventListener,
             return;
 
         var rewards = quest.getRewards();
-        List<DBEntry<IReward>> orig = rewards.getEntries();
 
-        int indexFrom = (indexToShift + direction + orig.size()) % orig.size();
-        DBEntry<IReward> from = orig.get(indexFrom);
-        DBEntry<IReward> to = orig.get(indexToShift);
+        int indexFrom = (indexToShift + direction + rewards.size()) % rewards.size();
+        IReward from = rewards.getValue(indexFrom);
+        IReward to = rewards.getValue(indexToShift);
 
-        rewards.removeID(from.getID());
-        rewards.removeID(to.getID());
-        rewards.add(indexToShift, from.getValue());
-        rewards.add(indexFrom, to.getValue());
+        rewards.removeID(indexFrom);
+        rewards.removeID(indexToShift);
+        rewards.add(indexToShift, from);
+        rewards.add(indexFrom, to);
     }
 
     private void SendChanges() {

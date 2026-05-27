@@ -213,16 +213,15 @@ public class GuiTaskEditor extends GuiScreenCanvas implements IPEventListener, I
             return;
 
         var tasks = quest.getTasks();
-        List<DBEntry<ITask>> orig = tasks.getEntries();
 
-        int indexFrom = (indexToShift + direction + orig.size()) % orig.size();
-        DBEntry<ITask> from = orig.get(indexFrom);
-        DBEntry<ITask> to = orig.get(indexToShift);
+        int indexFrom = (indexToShift + direction + tasks.size()) % tasks.size();
+        ITask from = tasks.getValue(indexFrom);
+        ITask to = tasks.getValue(indexToShift);
 
-        tasks.removeID(from.getID());
-        tasks.removeID(to.getID());
-        tasks.add(indexToShift, from.getValue());
-        tasks.add(indexFrom, to.getValue());
+        tasks.removeID(indexFrom);
+        tasks.removeID(indexToShift);
+        tasks.add(indexToShift, from);
+        tasks.add(indexFrom, to);
     }
 
     private void SendChanges() {
