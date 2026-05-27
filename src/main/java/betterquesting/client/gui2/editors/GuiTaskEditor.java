@@ -208,19 +208,12 @@ public class GuiTaskEditor extends GuiScreenCanvas implements IPEventListener, I
         }
     }
 
-    private void reorderReq(IQuest quest, int id, int direction) {
-        var tasks = quest.getTasks();
-        List<DBEntry<ITask>> orig = tasks.getEntries();
-
-        int indexToShift = -1;
-        for (int i = 0; i < orig.size(); i++) {
-            if (orig.get(i).getID() == id) {
-                indexToShift = i;
-                break;
-            }
-        }
+    private void reorderReq(IQuest quest, int indexToShift, int direction) {
         if (indexToShift < 0)
             return;
+
+        var tasks = quest.getTasks();
+        List<DBEntry<ITask>> orig = tasks.getEntries();
 
         int indexFrom = (indexToShift + direction + orig.size()) % orig.size();
         DBEntry<ITask> from = orig.get(indexFrom);
