@@ -209,8 +209,8 @@ public class GuiRewardEditor extends GuiScreenCanvas implements IPEventListener,
     }
 
     private void reorderReq(IQuest quest, int id, int direction) {
-        var tasks = quest.getRewards();
-        List<DBEntry<IReward>> orig = tasks.getEntries();
+        var rewards = quest.getRewards();
+        List<DBEntry<IReward>> orig = rewards.getEntries();
 
         int indexToShift = -1;
         for (int i = 0; i < orig.size(); i++) {
@@ -226,10 +226,10 @@ public class GuiRewardEditor extends GuiScreenCanvas implements IPEventListener,
         DBEntry<IReward> from = orig.get(indexFrom);
         DBEntry<IReward> to = orig.get(indexToShift);
 
-        tasks.removeID(from.getID());
-        tasks.removeID(to.getID());
-        tasks.add(indexToShift, from.getValue());
-        tasks.add(indexFrom, to.getValue());
+        rewards.removeID(from.getID());
+        rewards.removeID(to.getID());
+        rewards.add(indexToShift, from.getValue());
+        rewards.add(indexFrom, to.getValue());
     }
 
     private void SendChanges() {
