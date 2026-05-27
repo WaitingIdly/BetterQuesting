@@ -478,7 +478,9 @@ public class GuiQuestLines extends GuiScreenCanvas implements IPEventListener, I
         for (DBEntry<IQuestLine> dbEntry : lineList) {
             IQuestLine ql = dbEntry.getValue();
             EnumQuestVisibility vis = ql.getProperty(NativeProps.VISIBILITY);
-            if (!canEdit && vis == EnumQuestVisibility.HIDDEN) continue;
+
+            if (!canEdit && vis == EnumQuestVisibility.HIDDEN && (!viewMode || ql.getProperty(NativeProps.IGNORES_VIEW_MODE)))
+                continue;
 
             boolean show = false;
             boolean unlocked = false;
@@ -527,7 +529,7 @@ public class GuiQuestLines extends GuiScreenCanvas implements IPEventListener, I
     private boolean isQuestCompletedForQuestline(UUID playerID, @Nonnull IQuest q) {
         if (q.isComplete(playerID)) return true; // Completed quest
         if (q.getProperty(NativeProps.SKIP_COMPLETION_COUNT)) return true; // Always counted as true
-        if (q.getProperty(NativeProps.VISIBILITY) == EnumQuestVisibility.HIDDEN) return true; // Always hidden quest
+        if (q.getProperty(NativeProps.VISIBILITY) == EnumQuestVisibility.HIDDEN && q.getProperty(NativeProps.IGNORES_VIEW_MODE)) return true; // Always hidden quest
         if (q.getProperty(NativeProps.LOGIC_QUEST) == EnumLogic.XOR) { // Quest with choice
             int reqCount = 0;
             for (int qRequirementId : q.getRequirements()) {
@@ -600,7 +602,7 @@ public class GuiQuestLines extends GuiScreenCanvas implements IPEventListener, I
             IQuest quest = database.getValue(entry.getID());
 
             if (quest.getProperty(NativeProps.SKIP_COMPLETION_COUNT)) continue;
-            if (quest.getProperty(NativeProps.VISIBILITY) == EnumQuestVisibility.HIDDEN) continue;
+            if (quest.getProperty(NativeProps.VISIBILITY) == EnumQuestVisibility.HIDDEN && quest.getProperty(NativeProps.IGNORES_VIEW_MODE)) continue;
             if (quest.getProperty(NativeProps.LOGIC_QUEST) == EnumLogic.XOR) {
                 // Subtract the number of requirements - 1 to simulate only doing 1 task for XOR requirements
                 total = total - Math.max(0, quest.getRequirements().length - 1);
@@ -626,14 +628,14 @@ public class GuiQuestLines extends GuiScreenCanvas implements IPEventListener, I
 
         for (var visChapter : visChapters) {
             IQuestLine line = visChapter.getFirst().getValue();
-            if (line.getProperty(NativeProps.VISIBILITY) == EnumQuestVisibility.HIDDEN) continue;
+            if (line.getProperty(NativeProps.VISIBILITY) == EnumQuestVisibility.HIDDEN && line.getProperty(NativeProps.IGNORES_VIEW_MODE)) continue;
             for (var entry : line.getEntries()) {
                 int questId = entry.getID();
                 if (!seen.add(questId)) continue; // already counted in another visible line
                 IQuest quest = database.getValue(questId);
 
                 if (quest.getProperty(NativeProps.SKIP_COMPLETION_COUNT)) continue;
-                if (quest.getProperty(NativeProps.VISIBILITY) == EnumQuestVisibility.HIDDEN) continue;
+                if (quest.getProperty(NativeProps.VISIBILITY) == EnumQuestVisibility.HIDDEN && quest.getProperty(NativeProps.IGNORES_VIEW_MODE)) continue;
                 if (quest.getProperty(NativeProps.LOGIC_QUEST) == EnumLogic.XOR) {
                     // Subtract the number of requirements - 1 to simulate only doing 1 task for XOR requirements
                     total = total - Math.max(0, quest.getRequirements().length - 1);
