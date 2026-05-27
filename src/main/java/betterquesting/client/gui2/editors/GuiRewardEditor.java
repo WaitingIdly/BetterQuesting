@@ -22,6 +22,7 @@ import betterquesting.api2.client.gui.panels.content.PanelTextBox;
 import betterquesting.api2.client.gui.panels.lists.CanvasScrolling;
 import betterquesting.api2.client.gui.panels.lists.CanvasSearch;
 import betterquesting.api2.client.gui.themes.presets.PresetColor;
+import betterquesting.api2.client.gui.themes.presets.PresetIcon;
 import betterquesting.api2.client.gui.themes.presets.PresetLine;
 import betterquesting.api2.client.gui.themes.presets.PresetTexture;
 import betterquesting.api2.registry.IFactoryData;
@@ -177,6 +178,14 @@ public class GuiRewardEditor extends GuiScreenCanvas implements IPEventListener,
                     SendChanges();
                 }));
             }
+        } else if (btn.getButtonID() == 4) { // Reorder Up
+            DBEntry<IReward> reward = ((PanelButtonStorage<DBEntry<IReward>>) btn).getStoredValue();
+            reorderReq(quest, reward.getID(), -1);
+            SendChanges();
+        } else if (btn.getButtonID() == 5) { // Reorder Down
+            DBEntry<IReward> reward = ((PanelButtonStorage<DBEntry<IReward>>) btn).getStoredValue();
+            reorderReq(quest, reward.getID(), 1);
+            SendChanges();
         }
     }
 
@@ -188,9 +197,39 @@ public class GuiRewardEditor extends GuiScreenCanvas implements IPEventListener,
 
         for (int i = 0; i < dbRew.size(); i++) {
             IReward reward = dbRew.get(i).getValue();
-            qrList.addPanel(new PanelButtonStorage<>(new GuiRectangle(0, i * 16, w - 16, 16, 0), 3, QuestTranslation.translate(reward.getUnlocalisedName()), reward));
+            qrList.addPanel(new PanelButtonStorage<>(new GuiRectangle(0, i * 16, w - 24, 16, 0), 3, QuestTranslation.translate(reward.getUnlocalisedName()), reward));
+            PanelButton btnUp = new PanelButtonStorage<>(new GuiRectangle(w - 24, i * 16, 8, 8, 0), 4, "", dbRew.get(i)).setIcon(PresetIcon.ICON_UP.getTexture());
+            btnUp.setActive(dbRew.size() > 1);
+            qrList.addPanel(btnUp);
+            PanelButton btnDown = new PanelButtonStorage<>(new GuiRectangle(w - 24, i * 16 + 8, 8, 8, 0), 5, "", dbRew.get(i)).setIcon(PresetIcon.ICON_DOWN.getTexture());
+            btnDown.setActive(dbRew.size() > 1);
+            qrList.addPanel(btnDown);
             qrList.addPanel(new PanelButtonStorage<>(new GuiRectangle(w - 16, i * 16, 16, 16, 0), 2, "" + TextFormatting.RED + TextFormatting.BOLD + "x", reward));
         }
+    }
+
+    private void reorderReq(IQuest quest, int id, int direction) {
+        var tasks = quest.getRewards();
+        List<DBEntry<IReward>> orig = tasks.getEntries();
+
+        int indexToShift = -1;
+        for (int i = 0; i < orig.size(); i++) {
+            if (orig.get(i).getID() == id) {
+                indexToShift = i;
+                break;
+            }
+        }
+        if (indexToShift < 0)
+            return;
+
+        int indexFrom = (indexToShift + direction + orig.size()) % orig.size();
+        DBEntry<IReward> from = orig.get(indexFrom);
+        DBEntry<IReward> to = orig.get(indexToShift);
+
+        tasks.removeID(from.getID());
+        tasks.removeID(to.getID());
+        tasks.add(indexToShift, from.getValue());
+        tasks.add(indexFrom, to.getValue());
     }
 
     private void SendChanges() {
