@@ -199,7 +199,7 @@ public class GuiQuestLines extends GuiScreenCanvas implements IPEventListener, I
             cvDescTray.setTrayState(false, 200);
             cvFrame.setTrayState(false, 200);
             buildChapterList();
-            });
+        });
         cvBackground.addPanel(cvChapterTray);
 
         cvLines = new CanvasScrolling(new GuiTransform(GuiAlign.FULL_BOX, new GuiPadding(8, 20, 16, 8), 0));
@@ -759,7 +759,7 @@ public class GuiQuestLines extends GuiScreenCanvas implements IPEventListener, I
         NONE, CHAPTER, DESCRIPTION
     }
 
-    public static class ScrollPosition{
+    public static class ScrollPosition {
         public ScrollPosition(int chapterScrollY) {
             this.chapterScrollY = chapterScrollY;
         }
