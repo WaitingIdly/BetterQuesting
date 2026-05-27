@@ -310,13 +310,13 @@ public class GuiQuestLinesEditor extends GuiScreenCanvas implements IPEventListe
 
         for (DBEntry<IQuestLine> entry : QuestLineDatabase.INSTANCE.getSortedEntries()) {
             IQuestLine ql = entry.getValue();
-            PanelButtonStorage<DBEntry<IQuestLine>> tmp = new PanelButtonStorage<>(new GuiRectangle(0, i * 16, w - 24, 16, 0), 5, QuestTranslation.translate(ql.getUnlocalisedName()), entry);
+            PanelButtonStorage<DBEntry<IQuestLine>> tmp = new PanelButtonStorage<>(new GuiRectangle(8, i * 16, w - 24, 16, 0), 5, QuestTranslation.translate(ql.getUnlocalisedName()), entry);
             tmp.setActive(entry.getID() != selID);
             lineList.addPanel(tmp);
-            PanelButton btnUp = new PanelButtonStorage<>(new GuiRectangle(w - 24, i * 16, 8, 8, 0), 7, "", entry).setIcon(PresetIcon.ICON_UP.getTexture());
+            PanelButton btnUp = new PanelButtonStorage<>(new GuiRectangle(0, i * 16, 8, 8, 0), 7, "", entry).setIcon(PresetIcon.ICON_UP.getTexture());
             btnUp.setActive(QuestLineDatabase.INSTANCE.getSortedEntries().size() > 1);
             lineList.addPanel(btnUp);
-            PanelButton btnDown = new PanelButtonStorage<>(new GuiRectangle(w - 24, i * 16 + 8, 8, 8, 0), 8, "", entry).setIcon(PresetIcon.ICON_DOWN.getTexture());
+            PanelButton btnDown = new PanelButtonStorage<>(new GuiRectangle(0, i * 16 + 8, 8, 8, 0), 8, "", entry).setIcon(PresetIcon.ICON_DOWN.getTexture());
             btnDown.setActive(QuestLineDatabase.INSTANCE.getSortedEntries().size() > 1);
             lineList.addPanel(btnDown);
             lineList.addPanel(new PanelButtonStorage<>(new GuiRectangle(w - 16, i * 16, 16, 16, 0), 6, "", entry).setIcon(PresetIcon.ICON_TRASH.getTexture()));

@@ -197,11 +197,11 @@ public class GuiTaskEditor extends GuiScreenCanvas implements IPEventListener, I
 
         for (int i = 0; i < dbTsk.size(); i++) {
             ITask task = dbTsk.get(i).getValue();
-            qtList.addPanel(new PanelButtonStorage<>(new GuiRectangle(0, i * 16, w - 24, 16, 0), 3, QuestTranslation.translate(task.getUnlocalisedName()), task));
-            PanelButton btnUp = new PanelButtonStorage<>(new GuiRectangle(w - 24, i * 16, 8, 8, 0), 4, "", dbTsk.get(i)).setIcon(PresetIcon.ICON_UP.getTexture());
+            qtList.addPanel(new PanelButtonStorage<>(new GuiRectangle(8, i * 16, w - 24, 16, 0), 3, QuestTranslation.translate(task.getUnlocalisedName()), task));
+            PanelButton btnUp = new PanelButtonStorage<>(new GuiRectangle(0, i * 16, 8, 8, 0), 4, "", dbTsk.get(i)).setIcon(PresetIcon.ICON_UP.getTexture());
             btnUp.setActive(dbTsk.size() > 1);
             qtList.addPanel(btnUp);
-            PanelButton btnDown = new PanelButtonStorage<>(new GuiRectangle(w - 24, i * 16 + 8, 8, 8, 0), 5, "", dbTsk.get(i)).setIcon(PresetIcon.ICON_DOWN.getTexture());
+            PanelButton btnDown = new PanelButtonStorage<>(new GuiRectangle(0, i * 16 + 8, 8, 8, 0), 5, "", dbTsk.get(i)).setIcon(PresetIcon.ICON_DOWN.getTexture());
             btnDown.setActive(dbTsk.size() > 1);
             qtList.addPanel(btnDown);
             qtList.addPanel(new PanelButtonStorage<>(new GuiRectangle(w - 16, i * 16, 16, 16, 0), 2, "" + TextFormatting.RED + TextFormatting.BOLD + "x", task));

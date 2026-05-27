@@ -197,11 +197,11 @@ public class GuiRewardEditor extends GuiScreenCanvas implements IPEventListener,
 
         for (int i = 0; i < dbRew.size(); i++) {
             IReward reward = dbRew.get(i).getValue();
-            qrList.addPanel(new PanelButtonStorage<>(new GuiRectangle(0, i * 16, w - 24, 16, 0), 3, QuestTranslation.translate(reward.getUnlocalisedName()), reward));
-            PanelButton btnUp = new PanelButtonStorage<>(new GuiRectangle(w - 24, i * 16, 8, 8, 0), 4, "", dbRew.get(i)).setIcon(PresetIcon.ICON_UP.getTexture());
+            qrList.addPanel(new PanelButtonStorage<>(new GuiRectangle(8, i * 16, w - 24, 16, 0), 3, QuestTranslation.translate(reward.getUnlocalisedName()), reward));
+            PanelButton btnUp = new PanelButtonStorage<>(new GuiRectangle(0, i * 16, 8, 8, 0), 4, "", dbRew.get(i)).setIcon(PresetIcon.ICON_UP.getTexture());
             btnUp.setActive(dbRew.size() > 1);
             qrList.addPanel(btnUp);
-            PanelButton btnDown = new PanelButtonStorage<>(new GuiRectangle(w - 24, i * 16 + 8, 8, 8, 0), 5, "", dbRew.get(i)).setIcon(PresetIcon.ICON_DOWN.getTexture());
+            PanelButton btnDown = new PanelButtonStorage<>(new GuiRectangle(0, i * 16 + 8, 8, 8, 0), 5, "", dbRew.get(i)).setIcon(PresetIcon.ICON_DOWN.getTexture());
             btnDown.setActive(dbRew.size() > 1);
             qrList.addPanel(btnDown);
             qrList.addPanel(new PanelButtonStorage<>(new GuiRectangle(w - 16, i * 16, 16, 16, 0), 2, "" + TextFormatting.RED + TextFormatting.BOLD + "x", reward));

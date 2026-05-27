@@ -163,11 +163,11 @@ public class GuiPrerequisiteEditor extends GuiScreenCanvas implements IPEventLis
 
         List<DBEntry<IQuest>> arrReq = QuestDatabase.INSTANCE.bulkLookup(quest.getRequirements());
         for (int i = 0; i < arrReq.size(); i++) {
-            PanelButtonStorage<DBEntry<IQuest>> btnEdit = new PanelButtonStorage<>(new GuiRectangle(0, i * 16, width - 40, 16, 0), 1,
+            PanelButtonStorage<DBEntry<IQuest>> btnEdit = new PanelButtonStorage<>(new GuiRectangle(8, i * 16, width - 40, 16, 0), 1,
                     QuestTranslation.translate(arrReq.get(i).getValue().getProperty(NativeProps.NAME)), arrReq.get(i));
             canvasPreReq.addPanel(btnEdit);
 
-            PanelButtonStorage<DBEntry<IQuest>> btnType = new PanelButtonStorage<>(new GuiRectangle(width - 40, i * 16, 16, 16, 0), 6, "", arrReq.get(i));
+            PanelButtonStorage<DBEntry<IQuest>> btnType = new PanelButtonStorage<>(new GuiRectangle(width - 32, i * 16, 16, 16, 0), 6, "", arrReq.get(i));
             int arrReqID = arrReq.get(i).getID();
             btnType.setIcon(quest.getRequirementType(arrReqID).getIcon().getTexture());
             if (quest.getRequirementType(arrReqID) == IQuest.RequirementType.NORMAL)
@@ -178,12 +178,12 @@ public class GuiPrerequisiteEditor extends GuiScreenCanvas implements IPEventLis
                 btnType.setTooltip(Collections.singletonList(QuestTranslation.translate("betterquesting.btn.visible_hidden")));
             canvasPreReq.addPanel(btnType);
 
-            PanelButtonStorage<DBEntry<IQuest>> btnUp = new PanelButtonStorage<>(new GuiRectangle(width - 24, i * 16, 8, 8, 0), 7, "", arrReq.get(i));
+            PanelButtonStorage<DBEntry<IQuest>> btnUp = new PanelButtonStorage<>(new GuiRectangle(0, i * 16, 8, 8, 0), 7, "", arrReq.get(i));
             btnUp.setIcon(PresetIcon.ICON_UP.getTexture());
             btnUp.setActive(arrReq.size() > 1);
             canvasPreReq.addPanel(btnUp);
 
-            PanelButtonStorage<DBEntry<IQuest>> btnDown = new PanelButtonStorage<>(new GuiRectangle(width - 24, i * 16 + 8, 8, 8, 0), 8, "", arrReq.get(i));
+            PanelButtonStorage<DBEntry<IQuest>> btnDown = new PanelButtonStorage<>(new GuiRectangle(0, i * 16 + 8, 8, 8, 0), 8, "", arrReq.get(i));
             btnDown.setIcon(PresetIcon.ICON_DOWN.getTexture());
             btnDown.setActive(arrReq.size() > 1);
             canvasPreReq.addPanel(btnDown);
